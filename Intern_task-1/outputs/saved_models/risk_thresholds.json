@@ -1,0 +1,12 @@
+{
+  "critical_upper": 236.1,
+  "high_upper": 255.0,
+  "medium_upper": 280.2,
+  "method": "percentile_based",
+  "description": "Risk categories derived from quartiles of predicted median survival: Critical \u2264 P25 (236.1 mo), High = P25\u2013P50 (236.1\u2013255.0 mo), Medium = P50\u2013P75 (255.0\u2013280.2 mo), Low > P75 (280.2 mo)",
+  "percentiles": {
+    "p25": 236.1,
+    "p50": 255.0,
+    "p75": 280.2
+  }
+}

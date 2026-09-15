@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Employee Survival Prediction System – Predict employee resignation timelines using Cox PH, Random Survival Forest, Kaplan-Meier, and SHAP explainability.">
+    <title>Employee Survival Prediction System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- ========== HEADER ========== -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo-group">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 32 32" fill="none">
+                        <circle cx="16" cy="16" r="14" stroke="url(#grad)" stroke-width="2.5"/>
+                        <path d="M16 6 L16 26 M10 12 L16 6 L22 12" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs><linearGradient id="grad" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#00d4ff"/><stop offset="1" stop-color="#b44aff"/></linearGradient></defs>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="logo-title">NEXUS AI</h1>
+                    <p class="logo-subtitle">Autonomous Attrition & Retention Framework</p>
+                </div>
+            </div>
+            <div class="header-status" id="headerStatus">
+                <span class="status-dot idle"></span>
+                <span class="status-text">No dataset loaded</span>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- ========== NAV TABS ========== -->
+    <nav class="tab-nav" id="tabNav">
+        <button class="tab-btn active" data-tab="upload" id="tabUpload">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            Upload Dataset
+        </button>
+        <button class="tab-btn" data-tab="overview" id="tabOverview" disabled>
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Overview Dashboard
+        </button>
+        <button class="tab-btn" data-tab="triage" id="tabTriage" disabled>
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Financial Triage & Agents
+        </button>
+        <button class="tab-btn" data-tab="ablation" id="tabAblation" disabled>
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            Scientific Ablation Study
+        </button>
+        <button class="tab-btn" data-tab="employees" id="tabEmployees" disabled>
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            Employee Risk Table
+        </button>
+        <button class="tab-btn" data-tab="detail" id="tabDetail" disabled>
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            Employee Detail
+        </button>
+    </nav>
+
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <main class="main-content">
+
+        <!-- ===== UPLOAD TAB ===== -->
+        <section class="tab-panel active" id="panelUpload">
+            <div class="upload-container">
+                <div class="upload-hero">
+                    <h2>Upload HR Dataset or Select Benchmark</h2>
+                    <p>Upload a CSV/Excel dataset or select an official paper benchmark dataset to initialize the Nexus Multi-Agent Pipeline.</p>
+                </div>
+
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-dropzone" id="dropzone">
+                        <svg class="upload-icon" viewBox="0 0 64 64" fill="none">
+                            <circle cx="32" cy="32" r="28" stroke="url(#ugr)" stroke-width="2" stroke-dasharray="6 4"/>
+                            <path d="M32 20v20M24 28l8-8 8 8" stroke="url(#ugr)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <defs><linearGradient id="ugr" x1="0" y1="0" x2="64" y2="64"><stop stop-color="#00d4ff"/><stop offset="1" stop-color="#b44aff"/></linearGradient></defs>
+                        </svg>
+                        <p class="drop-text">Drag & drop your CSV or Excel file here</p>
+                        <p class="drop-subtext">Supports .csv, .xlsx, .xls</p>
+                        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" hidden>
+                    </div>
+                    <div class="upload-or">
+                        <span>OR FAST LOAD BENCHMARK</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:320px;">
+                        <button class="btn btn-secondary" id="btnLoadIBM">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/></svg>
+                            Primary IBM HR Dataset (n=1,470)
+                        </button>
+                        <button class="btn btn-secondary" id="btnLoadHealthcare">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                            Healthcare Dataset (n=1,676)
+                        </button>
+                        <button class="btn btn-secondary" id="btnGenerateSample">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                            Generate Synthetic Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Upload Progress -->
+                <div class="upload-progress hidden" id="uploadProgress">
+                    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                    <p class="progress-text" id="progressText">Uploading...</p>
+                </div>
+
+                <!-- Dataset Summary -->
+                <div class="dataset-summary hidden" id="datasetSummary">
+                    <h3>Dataset Summary</h3>
+                    <div class="summary-cards" id="summaryCards"></div>
+                    <div class="sample-preview">
+                        <h4>Sample Preview</h4>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="previewTable">
+                                <thead id="previewHead"></thead>
+                                <tbody id="previewBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-lg" id="btnTrain">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Launch Nexus Architecture Pipeline
+                    </button>
+                </div>
+
+                <!-- Training Progress -->
+                <div class="training-status hidden" id="trainingStatus">
+                    <div class="spinner"></div>
+                    <p class="training-text" id="trainingText">Initializing Nexus Architecture Pipeline...</p>
+                    <div class="training-steps" id="trainingSteps">
+                        <div class="step" id="stepData"><span class="step-dot"></span> [Observer Agent] Ingesting Roster & Schema Alignment</div>
+                        <div class="step" id="stepKM"><span class="step-dot"></span> [Analyst Agent] Fitting Cox + RSF Survival Ensemble</div>
+                        <div class="step" id="stepCox"><span class="step-dot"></span> [Financial Engine] Calculating ELV & Revenue at Risk Exposure</div>
+                        <div class="step" id="stepRSF"><span class="step-dot"></span> [Diagnostic Agent] Computing TreeSHAP Importances & LLM Prompts</div>
+                        <div class="step" id="stepSHAP"><span class="step-dot"></span> [Strategist Agent] Calibrating LinUCB Contextual Bandit Policy</div>
+                        <div class="step" id="stepDone"><span class="step-dot"></span> [Executor Agent] Nexus Multi-Agent System Active!</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ===== OVERVIEW TAB ===== -->
+        <section class="tab-panel" id="panelOverview">
+            <div class="overview-grid">
+                <!-- Model Comparison Card -->
+                <div class="glass-card card-comparison" id="cardComparison">
+                    <h3 class="card-title">Model Comparison (C-Index)</h3>
+                    <div class="comparison-content" id="comparisonContent"></div>
+                </div>
+
+                <!-- Risk Distribution -->
+                <div class="glass-card card-risk-dist">
+                    <h3 class="card-title">Risk Distribution</h3>
+                    <div class="risk-bars" id="riskBars"></div>
+                </div>
+
+                <!-- Kaplan-Meier Overall -->
+                <div class="glass-card card-km-overall">
+                    <h3 class="card-title">Kaplan-Meier – Overall Survival</h3>
+                    <div class="chart-container"><img id="kmOverallImg" alt="KM Overall"></div>
+                </div>
+
+                <!-- Kaplan-Meier by Department -->
+                <div class="glass-card card-km-dept">
+                    <h3 class="card-title">Kaplan-Meier – By Department</h3>
+                    <div class="chart-container"><img id="kmDeptImg" alt="KM by Department"></div>
+                </div>
+
+                <!-- SHAP Global -->
+                <div class="glass-card card-shap-global">
+                    <h3 class="card-title">SHAP – Global Feature Importance</h3>
+                    <div class="chart-container"><img id="shapGlobalImg" alt="SHAP Global"></div>
+                </div>
+
+                <!-- Cluster Distribution -->
+                <div class="glass-card card-cluster-dist">
+                    <h3 class="card-title">Resignation Window Distribution</h3>
+                    <div class="cluster-bars" id="clusterBars"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== TRIAGE & MULTI-AGENT TAB ===== -->
+        <section class="tab-panel" id="panelTriage">
+            <div class="overview-grid">
+                <!-- Financial Triage Summary -->
+                <div class="glass-card" style="grid-column: span 12;">
+                    <h3 class="card-title">Nexus ELV & Revenue at Risk Triage (Novelty 2)</h3>
+                    <p style="color: #8890a8; margin-bottom: 15px;">Prioritizing employee retention by financial exposure rather than raw churn probability score.</p>
+                    <div id="triageStats" style="display: flex; gap: 20px; margin-bottom: 20px;"></div>
+                    <button class="btn btn-primary" id="btnLoadTriage">Load Financial Leaderboard</button>
+                </div>
+
+                <!-- Leaderboard Table -->
+                <div class="glass-card" style="grid-column: span 12;">
+                    <h3 class="card-title">Top Monetary Exposure Leaderboard</h3>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="triageTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Role</th>
+                                    <th>Salary</th>
+                                    <th>P(Churn 90d)</th>
+                                    <th>ELV</th>
+                                    <th>Revenue at Risk</th>
+                                    <th>Exposure Tier</th>
+                                    <th>Autonomous Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="triageBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Agent Action Card Modal/Section -->
+                <div class="glass-card" style="grid-column: span 12;" id="agentCardSection">
+                    <h3 class="card-title">Autonomous 5-Agent Pipeline Console (Novelty 4)</h3>
+                    <div id="agentCardContainer" style="color: #c8cfe0;">
+                        <p>Select "Run 5-Agent Pipeline" on any employee above to launch Observer, Analyst, Diagnostic, Strategist (LinUCB Contextual Bandit), and Executor agents.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== ABLATION STUDY TAB ===== -->
+        <section class="tab-panel" id="panelAblation">
+            <div class="overview-grid">
+                <div class="glass-card" style="grid-column: span 12;">
+                    <h3 class="card-title">Section 10 Scientific Ablation Study Matrix</h3>
+                    <p style="color: #8890a8; margin-bottom: 15px;">Evaluating the incremental contribution of each component across C-index, IBS, Revenue Recall@10, and Bandit ROI.</p>
+                    <button class="btn btn-primary" id="btnRunAblation" style="margin-bottom: 20px;">Execute Section 10 Ablation Matrix</button>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="ablationTable">
+                            <thead>
+                                <tr>
+                                    <th>Configuration</th>
+                                    <th>C-index</th>
+                                    <th>IBS</th>
+                                    <th>Revenue Recall@10</th>
+                                    <th>Cumulative Reward</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ablationBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ===== EMPLOYEES TAB ===== -->
+        <section class="tab-panel" id="panelEmployees">
+            <div class="employees-container">
+                <div class="employees-toolbar">
+                    <div class="search-box">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                        <input type="text" id="searchInput" placeholder="Search by ID, department, role..." autocomplete="off">
+                    </div>
+                    <div class="filter-group">
+                        <select id="riskFilter" class="filter-select">
+                            <option value="">All Risks</option>
+                            <option value="Critical">Critical</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                        <select id="clusterFilter" class="filter-select">
+                            <option value="">All Windows</option>
+                            <option value="0–2 months">0–2 months</option>
+                            <option value="2–4 months">2–4 months</option>
+                            <option value="4–6 months">4–6 months</option>
+                            <option value="6–8 months">6–8 months</option>
+                            <option value="8–12 months">8–12 months</option>
+                            <option value="12+ months">12+ months</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="data-table employee-table" id="employeeTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Department</th>
+                                <th>Role</th>
+                                <th>Age</th>
+                                <th>Tenure (Yr)</th>
+                                <th>Satisfaction</th>
+                                <th>Performance</th>
+                                <th>Cox PH (Mo)</th>
+                                <th>RSF (Mo)</th>
+                                <th>Avg (Mo)</th>
+                                <th>Window</th>
+                                <th>Risk</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeeBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </section>
+
+        <!-- ===== DETAIL TAB ===== -->
+        <section class="tab-panel" id="panelDetail">
+            <div class="detail-container" id="detailContainer">
+                <div class="detail-placeholder" id="detailPlaceholder">
+                    <svg class="placeholder-icon" viewBox="0 0 64 64" fill="none">
+                        <circle cx="32" cy="24" r="12" stroke="#3a4070" stroke-width="2"/>
+                        <path d="M12 52c0-11 9-20 20-20s20 9 20 20" stroke="#3a4070" stroke-width="2"/>
+                    </svg>
+                    <p>Select an employee from the Risk Table to view detailed analysis</p>
+                </div>
+
+                <div class="detail-content hidden" id="detailContent">
+                    <!-- Profile Header -->
+                    <div class="detail-header" id="detailHeader">
+                        <div class="profile-avatar" id="profileAvatar"></div>
+                        <div class="profile-info">
+                            <h2 id="profileName">Employee #1001</h2>
+                            <p id="profileRole">Software Engineer – Engineering</p>
+                        </div>
+                        <div class="verdict-badge" id="verdictBadge">
+                            <span class="verdict-text" id="verdictText">LIKELY TO LEAVE</span>
+                        </div>
+                    </div>
+
+                    <!-- Verdict Detail -->
+                    <div class="glass-card verdict-card" id="verdictCard">
+                        <p id="verdictDetail"></p>
+                    </div>
+
+                    <!-- Profile Details Grid -->
+                    <div class="detail-grid">
+                        <div class="glass-card profile-card">
+                            <h3 class="card-title">Employee Profile</h3>
+                            <div class="profile-fields" id="profileFields"></div>
+                        </div>
+
+                        <div class="glass-card prediction-card">
+                            <h3 class="card-title">Prediction Summary</h3>
+                            <div class="prediction-fields" id="predictionFields"></div>
+                        </div>
+                    </div>
+
+                    <!-- Survival Probabilities -->
+                    <div class="glass-card">
+                        <h3 class="card-title">Survival Probabilities Over Time</h3>
+                        <div class="surv-prob-grid" id="survProbGrid"></div>
+                    </div>
+
+                    <!-- Survival Curve -->
+                    <div class="glass-card">
+                        <h3 class="card-title">Individual Survival Curve (Cox PH vs RSF)</h3>
+                        <div class="chart-container"><img id="empSurvImg" alt="Employee Survival Curve"></div>
+                    </div>
+
+                    <!-- SHAP -->
+                    <div class="glass-card">
+                        <h3 class="card-title">SHAP Explanation – Key Factors</h3>
+                        <div class="chart-container"><img id="empShapImg" alt="Employee SHAP"></div>
+                    </div>
+
+                    <!-- Top Reasons -->
+                    <div class="glass-card">
+                        <h3 class="card-title">Top Reasons for Prediction</h3>
+                        <div class="reasons-list" id="reasonsList"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

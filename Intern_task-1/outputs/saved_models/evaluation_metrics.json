@@ -1,0 +1,407 @@
+{
+  "cox": {
+    "train_c_index": 0.9804,
+    "test_c_index": 0.9795,
+    "train_ibs": 0.0137,
+    "test_ibs": 0.0575,
+    "train_time": 0.39,
+    "calibration": [
+      {
+        "time": 6,
+        "predicted_mean": 0.968,
+        "predicted_median": 0.9998,
+        "observed": 0.9621,
+        "n_at_risk": 284,
+        "calibration_error": 0.006
+      },
+      {
+        "time": 12,
+        "predicted_mean": 0.9493,
+        "predicted_median": 0.9996,
+        "observed": 0.9621,
+        "n_at_risk": 284,
+        "calibration_error": 0.0128
+      },
+      {
+        "time": 18,
+        "predicted_mean": 0.9139,
+        "predicted_median": 0.9992,
+        "observed": 0.9424,
+        "n_at_risk": 245,
+        "calibration_error": 0.0285
+      },
+      {
+        "time": 24,
+        "predicted_mean": 0.8909,
+        "predicted_median": 0.9987,
+        "observed": 0.9424,
+        "n_at_risk": 245,
+        "calibration_error": 0.0515
+      }
+    ],
+    "hazard_ratios": [
+      {
+        "feature": "YearsAtCompany",
+        "coefficient": -8.08,
+        "hazard_ratio": 0.0003,
+        "hr_ci_lower": 0.0001,
+        "hr_ci_upper": 0.001,
+        "p_value": 0.0,
+        "significance": "Significant",
+        "interpretation": "Decreases resignation hazard by 100.0%. Employees with higher values are less likely to leave."
+      },
+      {
+        "feature": "Overtime_enc",
+        "coefficient": 0.545,
+        "hazard_ratio": 1.7245,
+        "hr_ci_lower": 1.5074,
+        "hr_ci_upper": 1.973,
+        "p_value": 0.0,
+        "significance": "Significant",
+        "interpretation": "Increases resignation hazard by 72.5%. Employees with higher values are more likely to leave."
+      },
+      {
+        "feature": "YearsWithCurrManager",
+        "coefficient": -0.5336,
+        "hazard_ratio": 0.5865,
+        "hr_ci_lower": 0.4289,
+        "hr_ci_upper": 0.802,
+        "p_value": 0.0008,
+        "significance": "Significant",
+        "interpretation": "Decreases resignation hazard by 41.4%. Employees with higher values are less likely to leave."
+      },
+      {
+        "feature": "BusinessTravel_Travel_Frequently",
+        "coefficient": 0.4865,
+        "hazard_ratio": 1.6265,
+        "hr_ci_lower": 1.2388,
+        "hr_ci_upper": 2.1357,
+        "p_value": 0.0005,
+        "significance": "Significant",
+        "interpretation": "Increases resignation hazard by 62.7%. Employees with higher values are more likely to leave."
+      },
+      {
+        "feature": "TotalWorkingYears",
+        "coefficient": -0.4771,
+        "hazard_ratio": 0.6206,
+        "hr_ci_lower": 0.4125,
+        "hr_ci_upper": 0.9335,
+        "p_value": 0.022,
+        "significance": "Significant",
+        "interpretation": "Decreases resignation hazard by 37.9%. Employees with higher values are less likely to leave."
+      },
+      {
+        "feature": "YearsInCurrentRole",
+        "coefficient": -0.439,
+        "hazard_ratio": 0.6447,
+        "hr_ci_lower": 0.4708,
+        "hr_ci_upper": 0.8829,
+        "p_value": 0.0062,
+        "significance": "Significant",
+        "interpretation": "Decreases resignation hazard by 35.5%. Employees with higher values are less likely to leave."
+      },
+      {
+        "feature": "NumCompaniesWorked",
+        "coefficient": 0.3547,
+        "hazard_ratio": 1.4258,
+        "hr_ci_lower": 1.2175,
+        "hr_ci_upper": 1.6698,
+        "p_value": 0.0,
+        "significance": "Significant",
+        "interpretation": "Increases resignation hazard by 42.6%. Employees with higher values are more likely to leave."
+      },
+      {
+        "feature": "JobSatisfaction",
+        "coefficient": -0.3518,
+        "hazard_ratio": 0.7035,
+        "hr_ci_lower": 0.6089,
+        "hr_ci_upper": 0.8127,
+        "p_value": 0.0,
+        "significance": "Significant",
+        "interpretation": "Decreases resignation hazard by 29.7%. Employees with higher values are less likely to leave."
+      },
+      {
+        "feature": "EnvironmentSatisfaction",
+        "coefficient": -0.3186,
+        "hazard_ratio": 0.7272,
+        "hr_ci_lower": 0.6263,
+        "hr_ci_upper": 0.8442,
+        "p_value": 0.0,
+        "significance": "Significant",
+        "interpretation": "Decreases resignation hazard by 27.3%. Employees with higher values are less likely to leave."
+      },
+      {
+        "feature": "Age",
+        "coefficient": -0.2932,
+        "hazard_ratio": 0.7459,
+        "hr_ci_lower": 0.5953,
+        "hr_ci_upper": 0.9346,
+        "p_value": 0.0108,
+        "significance": "Significant",
+        "interpretation": "Decreases resignation hazard by 25.4%. Employees with higher values are less likely to leave."
+      },
+      {
+        "feature": "BusinessTravel_Travel_Rarely",
+        "coefficient": 0.2874,
+        "hazard_ratio": 1.333,
+        "hr_ci_lower": 0.9864,
+        "hr_ci_upper": 1.8014,
+        "p_value": 0.0614,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.0614)."
+      },
+      {
+        "feature": "EducationField_Medical",
+        "coefficient": -0.2789,
+        "hazard_ratio": 0.7566,
+        "hr_ci_lower": 0.5216,
+        "hr_ci_upper": 1.0975,
+        "p_value": 0.1416,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.1416)."
+      },
+      {
+        "feature": "MaritalStatus_Single",
+        "coefficient": 0.2328,
+        "hazard_ratio": 1.2621,
+        "hr_ci_lower": 0.9597,
+        "hr_ci_upper": 1.6597,
+        "p_value": 0.0958,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.0958)."
+      },
+      {
+        "feature": "EducationField_Life Sciences",
+        "coefficient": -0.2097,
+        "hazard_ratio": 0.8108,
+        "hr_ci_lower": 0.5511,
+        "hr_ci_upper": 1.193,
+        "p_value": 0.2872,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.2872)."
+      },
+      {
+        "feature": "DistanceFromHome",
+        "coefficient": 0.2096,
+        "hazard_ratio": 1.2332,
+        "hr_ci_lower": 1.0724,
+        "hr_ci_upper": 1.4181,
+        "p_value": 0.0033,
+        "significance": "Significant",
+        "interpretation": "Increases resignation hazard by 23.3%. Employees with higher values are more likely to leave."
+      },
+      {
+        "feature": "JobInvolvement",
+        "coefficient": -0.2066,
+        "hazard_ratio": 0.8134,
+        "hr_ci_lower": 0.7082,
+        "hr_ci_upper": 0.9341,
+        "p_value": 0.0034,
+        "significance": "Significant",
+        "interpretation": "Decreases resignation hazard by 18.7%. Employees with higher values are less likely to leave."
+      },
+      {
+        "feature": "RelationshipSatisfaction",
+        "coefficient": -0.2021,
+        "hazard_ratio": 0.817,
+        "hr_ci_lower": 0.7026,
+        "hr_ci_upper": 0.9501,
+        "p_value": 0.0087,
+        "significance": "Significant",
+        "interpretation": "Decreases resignation hazard by 18.3%. Employees with higher values are less likely to leave."
+      },
+      {
+        "feature": "StockOptionLevel",
+        "coefficient": -0.1966,
+        "hazard_ratio": 0.8215,
+        "hr_ci_lower": 0.6488,
+        "hr_ci_upper": 1.0401,
+        "p_value": 0.1024,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.1024)."
+      },
+      {
+        "feature": "EducationField_Other",
+        "coefficient": -0.1963,
+        "hazard_ratio": 0.8218,
+        "hr_ci_lower": 0.6295,
+        "hr_ci_upper": 1.0727,
+        "p_value": 0.1488,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.1488)."
+      },
+      {
+        "feature": "Salary",
+        "coefficient": -0.1723,
+        "hazard_ratio": 0.8418,
+        "hr_ci_lower": 0.6652,
+        "hr_ci_upper": 1.0652,
+        "p_value": 0.1515,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.1515)."
+      },
+      {
+        "feature": "WorkLifeBalance",
+        "coefficient": -0.1605,
+        "hazard_ratio": 0.8517,
+        "hr_ci_lower": 0.7406,
+        "hr_ci_upper": 0.9796,
+        "p_value": 0.0245,
+        "significance": "Significant",
+        "interpretation": "Decreases resignation hazard by 14.8%. Employees with higher values are less likely to leave."
+      },
+      {
+        "feature": "JobLevel",
+        "coefficient": -0.155,
+        "hazard_ratio": 0.8564,
+        "hr_ci_lower": 0.6302,
+        "hr_ci_upper": 1.1638,
+        "p_value": 0.3219,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.3219)."
+      },
+      {
+        "feature": "TrainingHours",
+        "coefficient": -0.1421,
+        "hazard_ratio": 0.8675,
+        "hr_ci_lower": 0.7421,
+        "hr_ci_upper": 1.0142,
+        "p_value": 0.0745,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.0745)."
+      },
+      {
+        "feature": "Gender_enc",
+        "coefficient": 0.1184,
+        "hazard_ratio": 1.1257,
+        "hr_ci_lower": 0.9675,
+        "hr_ci_upper": 1.3097,
+        "p_value": 0.1254,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.1254)."
+      },
+      {
+        "feature": "DailyRate",
+        "coefficient": -0.1014,
+        "hazard_ratio": 0.9036,
+        "hr_ci_lower": 0.7784,
+        "hr_ci_upper": 1.0489,
+        "p_value": 0.1826,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.1826)."
+      },
+      {
+        "feature": "PerformanceRating",
+        "coefficient": 0.099,
+        "hazard_ratio": 1.104,
+        "hr_ci_lower": 0.872,
+        "hr_ci_upper": 1.3978,
+        "p_value": 0.4111,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.4111)."
+      },
+      {
+        "feature": "Education",
+        "coefficient": -0.0522,
+        "hazard_ratio": 0.9491,
+        "hr_ci_lower": 0.8147,
+        "hr_ci_upper": 1.1056,
+        "p_value": 0.5023,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.5023)."
+      },
+      {
+        "feature": "EducationField_Marketing",
+        "coefficient": 0.0386,
+        "hazard_ratio": 1.0393,
+        "hr_ci_lower": 0.7989,
+        "hr_ci_upper": 1.3521,
+        "p_value": 0.7738,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.7738)."
+      },
+      {
+        "feature": "MonthlyRate",
+        "coefficient": 0.034,
+        "hazard_ratio": 1.0346,
+        "hr_ci_lower": 0.8941,
+        "hr_ci_upper": 1.1971,
+        "p_value": 0.6478,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.6478)."
+      },
+      {
+        "feature": "EducationField_Technical Degree",
+        "coefficient": -0.0224,
+        "hazard_ratio": 0.9778,
+        "hr_ci_lower": 0.7655,
+        "hr_ci_upper": 1.2491,
+        "p_value": 0.8574,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.8574)."
+      },
+      {
+        "feature": "HourlyRate",
+        "coefficient": -0.0147,
+        "hazard_ratio": 0.9854,
+        "hr_ci_lower": 0.846,
+        "hr_ci_upper": 1.1479,
+        "p_value": 0.8505,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.8505)."
+      },
+      {
+        "feature": "MaritalStatus_Married",
+        "coefficient": 0.0086,
+        "hazard_ratio": 1.0086,
+        "hr_ci_lower": 0.7986,
+        "hr_ci_upper": 1.2739,
+        "p_value": 0.9425,
+        "significance": "Not Significant",
+        "interpretation": "No statistically significant effect on resignation hazard (p=0.9425)."
+      }
+    ]
+  },
+  "rsf": {
+    "train_c_index": 0.9868,
+    "test_c_index": 0.9339,
+    "train_ibs": 0.0357,
+    "test_ibs": 0.1749,
+    "train_time": 1.26,
+    "calibration": [
+      {
+        "time": 6,
+        "predicted_mean": 0.9633,
+        "predicted_median": 0.9977,
+        "observed": 0.9621,
+        "n_at_risk": 284,
+        "calibration_error": 0.0012
+      },
+      {
+        "time": 12,
+        "predicted_mean": 0.9356,
+        "predicted_median": 0.9956,
+        "observed": 0.9621,
+        "n_at_risk": 284,
+        "calibration_error": 0.0264
+      },
+      {
+        "time": 18,
+        "predicted_mean": 0.9234,
+        "predicted_median": 0.9888,
+        "observed": 0.9424,
+        "n_at_risk": 245,
+        "calibration_error": 0.0191
+      },
+      {
+        "time": 24,
+        "predicted_mean": 0.9111,
+        "predicted_median": 0.9827,
+        "observed": 0.9424,
+        "n_at_risk": 245,
+        "calibration_error": 0.0313
+      }
+    ],
+    "n_estimators": 300
+  }
+}

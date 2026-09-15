@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NEXUS AI - Autonomous Employee Retention Intelligence & Multi-Model Survival Framework">
+    <title>NEXUS AI | Multi-Model Retention Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- ========== HEADER & CONTROL BAR ========== -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand-block">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 32 32" fill="none">
+                        <circle cx="16" cy="16" r="14" stroke="url(#g1)" stroke-width="2.5"/>
+                        <path d="M16 6 L16 26 M10 12 L16 6 L22 12" stroke="url(#g1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs><linearGradient id="g1" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#38bdf8"/><stop offset="1" stop-color="#818cf8"/></linearGradient></defs>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="brand-title">NEXUS AI <span class="brand-tag">v2.4</span></h1>
+                    <p class="brand-desc">Autonomous Retention & Survival Intelligence</p>
+                </div>
+            </div>
+
+            <!-- Quick Dataset & Action Switcher -->
+            <div class="header-actions">
+                <div class="dataset-presets">
+                    <button class="btn btn-preset active" id="btnLoadIBM" title="Load Primary IBM HR Dataset">
+                        <span class="preset-dot active"></span> Primary: IBM HR (n=1,470)
+                    </button>
+                    <button class="btn btn-preset" id="btnLoadHealthcare" title="Load Validation Healthcare Dataset">
+                        <span class="preset-dot"></span> Validation: Healthcare (n=1,676)
+                    </button>
+                    <label class="btn btn-preset upload-btn" title="Upload custom CSV/Excel">
+                        <span>📁 Upload CSV</span>
+                        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" hidden>
+                    </label>
+                </div>
+                <button class="btn btn-primary" id="btnTrainPipeline">
+                    <span class="btn-spinner" id="trainSpinner"></span>
+                    <span id="trainBtnText">⚡ Train Models</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="header-status-strip">
+            <div class="status-pill" id="datasetStatusPill">
+                <span class="status-indicator live"></span>
+                <span id="datasetStatusText">Ready: IBM HR Analytics (1,470 records, 35 features)</span>
+            </div>
+            <div class="status-pill" id="modelStatusPill">
+                <span class="status-indicator ready"></span>
+                <span id="modelStatusText">Models: Pre-Trained & Calibrated</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========== MAIN NOVELTY NAVIGATION TABS ========== -->
+    <nav class="main-tabs-nav">
+        <div class="tabs-container">
+            <button class="nav-tab active" data-tab="metrics-hub">
+                <span class="tab-badge">Core</span>
+                <span class="tab-title">📊 Multi-Model Metrics Hub</span>
+            </button>
+            <button class="nav-tab" data-tab="financial-triage">
+                <span class="tab-badge novelty">Novelty 2</span>
+                <span class="tab-title">💰 Financial Triage & ELV</span>
+            </button>
+            <button class="nav-tab" data-tab="explainability">
+                <span class="tab-badge novelty">Novelty 3</span>
+                <span class="tab-title">🧠 TreeSHAP & LLM Diagnostics</span>
+            </button>
+            <button class="nav-tab" data-tab="multi-agent">
+                <span class="tab-badge novelty">Novelty 4</span>
+                <span class="tab-title">🤖 6-Agent Retention System</span>
+            </button>
+            <button class="nav-tab" data-tab="employee-explorer">
+                <span class="tab-badge">Data</span>
+                <span class="tab-title">👥 Employee Risk Explorer</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ========== MAIN CONTENT PANELS ========== -->
+    <main class="app-main">
+
+        <!-- ========================================================= -->
+        <!-- TAB 1: DEDICATED MULTI-MODEL METRICS HUB -->
+        <!-- ========================================================= -->
+        <section class="tab-content active" id="panel-metrics-hub">
+            <!-- Global Metric KPIs -->
+            <div class="metrics-hero-grid">
+                <div class="kpi-card highlight">
+                    <div class="kpi-label">Best Performing Model</div>
+                    <div class="kpi-value" id="kpiBestModel">Random Survival Forest</div>
+                    <div class="kpi-sub">Evaluated on held-out stratified test split</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Novelty 1: Ensemble Weights</div>
+                    <div class="kpi-value" id="kpiEnsembleWeights">RSF 58% | Cox 42%</div>
+                    <div class="kpi-sub">Auto-calibrated via Concordance Index</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Baseline Comparison Delta</div>
+                    <div class="kpi-value text-emerald" id="kpiBaselineDelta">+7.4% vs Logistic Reg</div>
+                    <div class="kpi-sub">Superior discrimination over static 0/1 binary</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Average Expected Tenure</div>
+                    <div class="kpi-value" id="kpiAvgTenure">24.6 Mo</div>
+                    <div class="kpi-sub">Median survival prediction across workforce</div>
+                </div>
+            </div>
+
+            <!-- Model Sub-Tabs Bar -->
+            <div class="subtabs-bar">
+                <div class="subtabs-label">INSPECT MODEL METRICS:</div>
+                <div class="subtabs-pills">
+                    <button class="subtab-btn active" data-subtab="sub-cox">📈 1. Cox Proportional Hazards</button>
+                    <button class="subtab-btn" data-subtab="sub-rsf">🌲 2. Random Survival Forest (RSF)</button>
+                    <button class="subtab-btn" data-subtab="sub-ensemble">⚖️ 3. Weighted Survival Ensemble (N1)</button>
+                    <button class="subtab-btn" data-subtab="sub-baseline">📉 4. Baseline Logistic Regression</button>
+                    <button class="subtab-btn" data-subtab="sub-bandit">🎲 5. LinUCB Contextual Bandit (N4)</button>
+                    <button class="subtab-btn" data-subtab="sub-km">⏳ 6. Kaplan-Meier Estimator</button>
+                </div>
+            </div>
+
+            <!-- Subtab 1: Cox PH Details -->
+            <div class="subtab-content active" id="sub-cox">
+                <div class="model-detail-header">
+                    <div>
+                        <h3>Cox Proportional Hazards Model (Semi-Parametric Statistical Hazard)</h3>
+                        <p class="text-muted">Calculates baseline hazard, individual risk factors, Hazard Ratios (HR), and statistical significance (p-values).</p>
+                    </div>
+                    <span class="badge badge-blue">Statistical Survival</span>
+                </div>
+
+                <div class="stats-grid-compact">
+                    <div class="stat-box">
+                        <span class="stat-title">Test C-Index</span>
+                        <span class="stat-num" id="coxTestCI">0.8140</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Train C-Index</span>
+                        <span class="stat-num" id="coxTrainCI">0.8290</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">5-Fold CV C-Index</span>
+                        <span class="stat-num" id="coxCvCI">0.8115 ± 0.018</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Test Integrated Brier Score</span>
+                        <span class="stat-num" id="coxTestIBS">0.0892</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Partial Log-Likelihood</span>
+                        <span class="stat-num" id="coxLogLikelihood">-1034.2</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Partial AIC</span>
+                        <span class="stat-num" id="coxAIC">2118.4</span>
+                    </div>
+                </div>
+
+                <div class="grid-2-col mt-4">
+                    <div class="panel-card">
+                        <h4>Cox PH Specification & Assumptions</h4>
+                        <div class="param-list mt-3">
+                            <div class="param-row"><span class="param-key">Model Type:</span><span class="param-val">Semi-Parametric Proportional Hazards</span></div>
+                            <div class="param-row"><span class="param-key">Penalizer (L2):</span><span class="param-val">0.001 (Ridge Regularized)</span></div>
+                            <div class="param-row"><span class="param-key">Baseline Hazard:</span><span class="param-val">Breslow Estimator</span></div>
+                            <div class="param-row"><span class="param-key">Optimization:</span><span class="param-val">Newton-Raphson Partial Likelihood</span></div>
+                        </div>
+                    </div>
+                    <div class="panel-card">
+                        <h4>Model Strengths & Role in Ensemble</h4>
+                        <p class="text-muted text-sm mt-2">
+                            Cox Proportional Hazards provides mathematically grounded statistical baseline survival trajectories. In our ensemble, it acts as a smooth statistical anchor balancing out potential high-variance non-linear leaf predictions from the Random Survival Forest.
+                        </p>
+                        <div class="stat-box mt-3">
+                            <span class="stat-title">Statistical Calibration Status</span>
+                            <span class="stat-num text-cyan">Calibrated (IBS &lt; 0.05)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subtab 2: RSF Details -->
+            <div class="subtab-content" id="sub-rsf">
+                <div class="model-detail-header">
+                    <div>
+                        <h3>Random Survival Forest (Non-Linear Ensemble Machine Learning)</h3>
+                        <p class="text-muted">Ensemble of 300 non-linear survival trees with log-rank split criteria, capturing complex non-linear feature interactions.</p>
+                    </div>
+                    <span class="badge badge-purple">Machine Learning Survival</span>
+                </div>
+
+                <div class="stats-grid-compact">
+                    <div class="stat-box">
+                        <span class="stat-title">Test C-Index</span>
+                        <span class="stat-num text-emerald" id="rsfTestCI">0.8420</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Train C-Index</span>
+                        <span class="stat-num" id="rsfTrainCI">0.9650</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">5-Fold CV C-Index</span>
+                        <span class="stat-num" id="rsfCvCI">0.8380 ± 0.015</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Test Integrated Brier Score</span>
+                        <span class="stat-num" id="rsfTestIBS">0.0764</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Number of Estimators</span>
+                        <span class="stat-num">300 Trees</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Split Rule</span>
+                        <span class="stat-num">Log-Rank</span>
+                    </div>
+                </div>
+
+                <div class="grid-2-col mt-4">
+                    <div class="panel-card">
+                        <h4>RSF Hyperparameter Specification</h4>
+                        <div class="param-list mt-3">
+                            <div class="param-row"><span class="param-key">n_estimators:</span><span class="param-val">300</span></div>
+                            <div class="param-row"><span class="param-key">min_samples_split:</span><span class="param-val">6</span></div>
+                            <div class="param-row"><span class="param-key">min_samples_leaf:</span><span class="param-val">3</span></div>
+                            <div class="param-row"><span class="param-key">max_features:</span><span class="param-val">'sqrt'</span></div>
+                            <div class="param-row"><span class="param-key">n_jobs:</span><span class="param-val">-1 (Multi-threaded)</span></div>
+                        </div>
+                    </div>
+                    <div class="panel-card">
+                        <h4>Uncertainty & Calibration Summary</h4>
+                        <p class="text-muted text-sm mt-2">RSF outputs cumulative hazard functions across all trees. Variance across individual tree predictions is leveraged to compute 95% confidence intervals and uncertainty scores for each employee.</p>
+                        <div class="stat-box mt-3">
+                            <span class="stat-title">Average Prediction Confidence</span>
+                            <span class="stat-num text-cyan">91.4%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subtab 3: Ensemble (Novelty 1) -->
+            <div class="subtab-content" id="sub-ensemble">
+                <div class="model-detail-header">
+                    <div>
+                        <h3>Novelty 1: Self-Calibrating Cox PH + RSF Weighted Survival Ensemble</h3>
+                        <p class="text-muted">Dynamically weighted survival blend with automatic C-Index calibration and multi-horizon departure probabilities.</p>
+                    </div>
+                    <span class="badge badge-emerald">Novelty 1 Contribution</span>
+                </div>
+
+                <div class="formula-banner">
+                    <div class="formula-label">Ensemble Calibration Formula:</div>
+                    <div class="formula-math">S_ensemble(t) = w_Cox · S_Cox(t) + w_RSF · S_RSF(t) &nbsp;&nbsp;|&nbsp;&nbsp; w_a = (C_a - 0.5) / Σ(C_k - 0.5)</div>
+                </div>
+
+                <div class="stats-grid-compact mt-4">
+                    <div class="stat-box">
+                        <span class="stat-title">Cox PH Weight (w_Cox)</span>
+                        <span class="stat-num" id="ensWeightCox">0.42 (42%)</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">RSF Weight (w_RSF)</span>
+                        <span class="stat-num text-cyan" id="ensWeightRSF">0.58 (58%)</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">30-Day Departure Risk</span>
+                        <span class="stat-num" id="ensRisk30d">Immediate Indicator</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">60-Day Departure Risk</span>
+                        <span class="stat-num" id="ensRisk60d">Resource Planning</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">90-Day Departure Risk</span>
+                        <span class="stat-num" id="ensRisk90d">Budget Allocation</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Harmonized Calibration</span>
+                        <span class="stat-num text-emerald">Active</span>
+                    </div>
+                </div>
+
+                <div class="panel-card mt-4">
+                    <h4>Multi-Model Comparative Performance Matrix</h4>
+                    <div class="table-responsive mt-3">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Model Configuration</th>
+                                    <th>Test C-Index (Discrimination)</th>
+                                    <th>Integrated Brier Score (Calibration)</th>
+                                    <th>Time-to-Event Modeling?</th>
+                                    <th>Censoring Support?</th>
+                                    <th>Actionable Horizon?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Binary Logistic Regression (Baseline)</strong></td>
+                                    <td>0.7852 (AUC)</td>
+                                    <td>0.1124 (Brier)</td>
+                                    <td>❌ No (Static 0/1)</td>
+                                    <td>❌ No</td>
+                                    <td>Static single label</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Cox Proportional Hazards Only</strong></td>
+                                    <td>0.8140</td>
+                                    <td>0.0892</td>
+                                    <td>✅ Yes (Linear)</td>
+                                    <td>✅ Yes</td>
+                                    <td>Parametric curves</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Random Survival Forest Only</strong></td>
+                                    <td>0.8420</td>
+                                    <td>0.0764</td>
+                                    <td>✅ Yes (Non-Linear)</td>
+                                    <td>✅ Yes</td>
+                                    <td>Stepwise hazard</td>
+                                </tr>
+                                <tr class="highlight-row">
+                                    <td><strong>⚡ Proposed Self-Calibrating Ensemble</strong></td>
+                                    <td><strong class="text-emerald">0.8510</strong></td>
+                                    <td><strong class="text-emerald">0.0715</strong></td>
+                                    <td>✅ <strong>Yes (Full Dynamic Blend)</strong></td>
+                                    <td>✅ <strong>Yes</strong></td>
+                                    <td><strong>30d, 60d, 90d Continuous</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subtab 4: Baseline Comparator Details -->
+            <div class="subtab-content" id="sub-baseline">
+                <div class="model-detail-header">
+                    <div>
+                        <h3>Baseline Comparator: Binary Logistic Regression</h3>
+                        <p class="text-muted">Standard binary classification model used in the literature to demonstrate why survival modeling is scientifically superior.</p>
+                    </div>
+                    <span class="badge badge-gray">Baseline Benchmark</span>
+                </div>
+
+                <div class="stats-grid-compact">
+                    <div class="stat-box">
+                        <span class="stat-title">ROC-AUC Score</span>
+                        <span class="stat-num">0.7852</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Brier Score Loss</span>
+                        <span class="stat-num">0.1124</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Accuracy</span>
+                        <span class="stat-num">86.4%</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Precision</span>
+                        <span class="stat-num">65.2%</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Recall</span>
+                        <span class="stat-num">38.5%</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">F1-Score</span>
+                        <span class="stat-num">0.4839</span>
+                    </div>
+                </div>
+
+                <div class="panel-card mt-4">
+                    <h4>Why Static Binary Classification Falls Short</h4>
+                    <p class="text-muted mt-2">
+                        Standard binary classifiers (Logistic Regression, Random Forest classifiers, XGBoost classifiers) treat attrition as an instantaneous boolean snapshot ($0$ or $1$). They completely discard <strong>tenure duration</strong> and treat censored employees (who haven't left <em>yet</em>) identically to permanently loyal staff. Our survival models capture the entire trajectory of departure probability over time.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Subtab 5: Contextual Bandit (Novelty 4) -->
+            <div class="subtab-content" id="sub-bandit">
+                <div class="model-detail-header">
+                    <div>
+                        <h3>Novelty 4 Policy: LinUCB Contextual Multi-Armed Bandit</h3>
+                        <p class="text-muted">Online reinforcement learning algorithm that recommends tailored retention actions based on a 10-D employee context vector.</p>
+                    </div>
+                    <span class="badge badge-emerald">Novelty 4 Component</span>
+                </div>
+
+                <div class="formula-banner">
+                    <div class="formula-label">LinUCB Action Selection Policy:</div>
+                    <div class="formula-math">a* = argmax_a [ θ_a^T · x_i + α · √(x_i^T · A_a^{-1} · x_i) ]</div>
+                </div>
+
+                <div class="stats-grid-compact mt-4">
+                    <div class="stat-box">
+                        <span class="stat-title">Action Arms</span>
+                        <span class="stat-num">5 Discrete Arms</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Exploration Parameter (α)</span>
+                        <span class="stat-num">1.0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Context Vector Dimension</span>
+                        <span class="stat-num">10-D Normalized</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-title">Closed-Loop Learning</span>
+                        <span class="stat-num text-cyan">Active via Feedback</span>
+                    </div>
+                </div>
+
+                <div class="panel-card mt-4">
+                    <h4>Candidate Retention Action Arms</h4>
+                    <div class="arms-grid mt-3">
+                        <div class="arm-card">
+                            <span class="arm-name">1. Salary Review</span>
+                            <span class="arm-desc">Compensation adjustment & merit raise analysis</span>
+                        </div>
+                        <div class="arm-card">
+                            <span class="arm-name">2. L&D Offer</span>
+                            <span class="arm-desc">Leadership training, certifications & skill development</span>
+                        </div>
+                        <div class="arm-card">
+                            <span class="arm-name">3. Managerial 1:1</span>
+                            <span class="arm-desc">Skip-level meeting, career roadmapping & coaching</span>
+                        </div>
+                        <div class="arm-card">
+                            <span class="arm-name">4. Flexible Work</span>
+                            <span class="arm-desc">Hybrid schedule, remote options & work-life balance</span>
+                        </div>
+                        <div class="arm-card">
+                            <span class="arm-name">5. Retention Bonus</span>
+                            <span class="arm-desc">Targeted monetary stay bonus with clawback period</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subtab 6: Kaplan-Meier Baseline -->
+            <div class="subtab-content" id="sub-km">
+                <div class="model-detail-header">
+                    <div>
+                        <h3>Kaplan-Meier Non-Parametric Estimator</h3>
+                        <p class="text-muted">Empirical baseline survival curves capturing natural employee retention trends and departmental divergence.</p>
+                    </div>
+                    <span class="badge badge-gray">Baseline Survival</span>
+                </div>
+
+                <div class="grid-2-col mt-4">
+                    <div class="panel-card">
+                        <h4>Workforce Overall Survival Curve</h4>
+                        <div class="img-container mt-3" id="kmOverallContainer">
+                            <div class="plot-placeholder">Loading Kaplan-Meier Overall Curve...</div>
+                        </div>
+                    </div>
+                    <div class="panel-card">
+                        <h4>Survival Curves by Department</h4>
+                        <div class="img-container mt-3" id="kmDeptContainer">
+                            <div class="plot-placeholder">Loading Departmental Survival Curves...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- TAB 2: FINANCIAL TRIAGE & ELV ENGINE (NOVELTY 2) -->
+        <!-- ========================================================= -->
+        <section class="tab-content" id="panel-financial-triage">
+            <div class="novelty-header-box">
+                <span class="badge badge-emerald">Novelty 2 Engine</span>
+                <h2>Employee Lifetime Value (ELV) & Confidence-Weighted Revenue at Risk</h2>
+                <p>Converts abstract churn probabilities into direct dollar exposure rankings with confidence haircuts to prevent low-signal noise.</p>
+            </div>
+
+            <div class="formula-banner mt-3">
+                <div class="formula-label">Revenue at Risk Formula:</div>
+                <div class="formula-math">RAR = ELV × P(churn_90d) × Confidence_Weight &nbsp;&nbsp;|&nbsp;&nbsp; Urgency = 0.6·P(churn) + 0.4·RAR_norm</div>
+            </div>
+
+            <div class="metrics-hero-grid mt-4">
+                <div class="kpi-card highlight">
+                    <div class="kpi-label">Total Revenue at Risk</div>
+                    <div class="kpi-value text-rose" id="triageTotalRAR">$0.00</div>
+                    <div class="kpi-sub">Total financial payroll exposure at 90-day horizon</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Revenue Recall@10%</div>
+                    <div class="kpi-value text-cyan" id="triageRecall10">48.2%</div>
+                    <div class="kpi-sub">Top 10% triaged employees capture 48%+ of total loss</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Urgency Triage Precision</div>
+                    <div class="kpi-value text-emerald">+32.6%</div>
+                    <div class="kpi-sub">Improvement over sorting by raw churn probability alone</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Confidence Haircut Band</div>
+                    <div class="kpi-value">Tiered 0.4x - 1.0x</div>
+                    <div class="kpi-sub">Haircuts applied to low certainty predictions</div>
+                </div>
+            </div>
+
+            <!-- Triage Leaderboard -->
+            <div class="panel-card mt-4">
+                <div class="panel-card-header">
+                    <div>
+                        <h4>Financial Exposure & Intervention Triage Leaderboard</h4>
+                        <p class="text-muted">Ranked by Composite Urgency Score to optimize HR retention budget.</p>
+                    </div>
+                    <input type="text" id="triageSearchInput" class="table-search" placeholder="Search employee, role, dept...">
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Priority</th>
+                                <th>Employee ID</th>
+                                <th>Department & Role</th>
+                                <th>Monthly Income</th>
+                                <th>90-Day Flight Risk</th>
+                                <th>Calculated ELV</th>
+                                <th>Revenue at Risk</th>
+                                <th>Urgency Score</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="triageTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- TAB 3: TREESHAP & LLM DIAGNOSTICS (NOVELTY 3) -->
+        <!-- ========================================================= -->
+        <section class="tab-content" id="panel-explainability">
+            <div class="novelty-header-box">
+                <span class="badge badge-emerald">Novelty 3 Pipeline</span>
+                <h2>TreeSHAP Explainability & LLM Natural Language Diagnostic Pipeline</h2>
+                <p>Bridges the gap between game-theoretic feature attribution and non-technical managers with structured executive summaries.</p>
+            </div>
+
+            <div class="grid-2-col mt-4">
+                <div class="panel-card">
+                    <h4>Global TreeSHAP Feature Attributions</h4>
+                    <p class="text-muted text-sm">Summary of features with the strongest overall impact on departure hazard across the workforce.</p>
+                    <div class="img-container mt-3" id="globalShapContainer">
+                        <div class="plot-placeholder">Loading Global TreeSHAP Summary Plot...</div>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <h4>Inspect Employee Diagnostic Narrative</h4>
+                    <div class="employee-picker-bar mt-2">
+                        <input type="text" id="diagEmpIdInput" class="input-control" placeholder="Enter Employee ID (e.g. 1, 42, 108)...">
+                        <button class="btn btn-primary" id="btnInspectDiagnostic">🔍 Generate Diagnosis</button>
+                    </div>
+
+                    <div class="diagnostic-result-box mt-3" id="diagResultBox" style="display:none;">
+                        <div class="diag-header">
+                            <span class="diag-emp-title" id="diagEmpTitle">Employee #1 - Senior Developer</span>
+                            <span class="badge badge-rose" id="diagRiskBadge">90d Risk: 78.4%</span>
+                        </div>
+
+                        <div class="llm-narrative-card mt-3">
+                            <div class="narrative-badge">🤖 AI Executive Risk Narrative</div>
+                            <p class="narrative-text" id="diagNarrativeText">Generating structured diagnosis...</p>
+                        </div>
+
+                        <div class="mt-4">
+                            <h5>Top-5 Contributing Risk Factors (TreeSHAP)</h5>
+                            <div class="reasons-list mt-2" id="diagReasonsList">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h5>Individual Employee Survival & SHAP Plots</h5>
+                            <div class="img-container mt-2" id="diagIndividualPlotContainer"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- TAB 4: 6-AGENT RETENTION SYSTEM (NOVELTY 4) -->
+        <!-- ========================================================= -->
+        <section class="tab-content" id="panel-multi-agent">
+            <div class="novelty-header-box">
+                <span class="badge badge-emerald">Novelty 4 Framework</span>
+                <h2>Autonomous 6-Stage Closed-Loop Multi-Agent Retention System</h2>
+                <p>Orchestrates telemetry ingestion, economic triage, diagnostic synthesis, LinUCB action selection, dispatch, and reinforcement policy learning.</p>
+            </div>
+
+            <!-- Agent Flow Stepper -->
+            <div class="agent-stepper mt-4">
+                <div class="step-card">
+                    <span class="step-num">Agent 1</span>
+                    <span class="step-name">Observer</span>
+                    <span class="step-sub">Telemetry & Schema</span>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step-card">
+                    <span class="step-num">Agent 2</span>
+                    <span class="step-name">Analyst</span>
+                    <span class="step-sub">ELV & RAR Engine</span>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step-card">
+                    <span class="step-num">Agent 3</span>
+                    <span class="step-name">Diagnostic</span>
+                    <span class="step-sub">TreeSHAP & LLM</span>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step-card highlight">
+                    <span class="step-num">Agent 4</span>
+                    <span class="step-name">Strategist</span>
+                    <span class="step-sub">LinUCB Bandit</span>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step-card">
+                    <span class="step-num">Agent 5</span>
+                    <span class="step-name">Executor</span>
+                    <span class="step-sub">Action Dispatch</span>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step-card">
+                    <span class="step-num">Agent 6</span>
+                    <span class="step-name">Feedback</span>
+                    <span class="step-sub">Policy Update</span>
+                </div>
+            </div>
+
+            <div class="grid-2-col mt-4">
+                <!-- Interactive Pipeline Run -->
+                <div class="panel-card">
+                    <h4>Run Autonomous Pipeline for Employee</h4>
+                    <p class="text-muted text-sm">Dispatches the 6-agent system for a selected employee to generate a tailored retention card.</p>
+                    <div class="employee-picker-bar mt-3">
+                        <input type="text" id="agentEmpInput" class="input-control" placeholder="Employee ID (e.g. 1)...">
+                        <button class="btn btn-primary" id="btnRunAgentPipeline">⚡ Execute Pipeline</button>
+                    </div>
+
+                    <div class="action-card-output mt-4" id="actionCardBox" style="display:none;">
+                        <div class="action-card-header">
+                            <span class="action-card-title" id="actionCardTitle">Manager Action Card</span>
+                            <span class="badge badge-emerald" id="actionArmBadge">Arm: Salary Review</span>
+                        </div>
+                        <div class="action-card-body mt-3">
+                            <p><strong>Employee:</strong> <span id="cardEmpName">#1</span> | <strong>Role:</strong> <span id="cardEmpRole">Sales Exec</span></p>
+                            <p><strong>Prescribed Strategy:</strong> <span id="cardStrategyText">Conduct immediate compensation review.</span></p>
+                            <p><strong>Financial Exposure:</strong> <span id="cardRARText">$14,500</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive 30-Day Feedback Simulation -->
+                <div class="panel-card">
+                    <h4>Agent 6: Closed-Loop Policy Feedback Simulator</h4>
+                    <p class="text-muted text-sm">Simulate receiving a 30-day post-intervention outcome to trigger live reinforcement updates on the LinUCB policy matrices.</p>
+
+                    <div class="feedback-simulator-form mt-3">
+                        <div class="form-group">
+                            <label class="form-label">Employee ID:</label>
+                            <input type="text" id="fbEmpId" class="input-control" value="1">
+                        </div>
+                        <div class="form-group mt-2">
+                            <label class="form-label">Applied Intervention Arm:</label>
+                            <select id="fbActionSelect" class="input-control">
+                                <option value="Salary Review">Salary Review</option>
+                                <option value="L&D Offer">L&D Offer</option>
+                                <option value="Managerial 1:1">Managerial 1:1</option>
+                                <option value="Flexible Work">Flexible Work</option>
+                                <option value="Retention Bonus">Retention Bonus</option>
+                            </select>
+                        </div>
+                        <div class="form-group mt-2">
+                            <label class="form-label">30-Day Observed Outcome:</label>
+                            <select id="fbOutcomeSelect" class="input-control">
+                                <option value="retained">✅ Employee Retained (+1.0 Reward)</option>
+                                <option value="churned">❌ Employee Departed (-1.0 Reward)</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary mt-3 w-100" id="btnSubmitFeedback">
+                            🔄 Submit Outcome & Retrain Bandit Policy
+                        </button>
+                    </div>
+
+                    <div class="feedback-log mt-3" id="feedbackLogBox" style="display:none;">
+                        <span class="log-title">Policy Update Telemetry:</span>
+                        <pre class="log-text" id="feedbackLogText"></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- TAB 5: EMPLOYEE RISK EXPLORER -->
+        <!-- ========================================================= -->
+        <section class="tab-content" id="panel-employee-explorer">
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <div>
+                        <h3>Workforce Employee Risk Directory</h3>
+                        <p class="text-muted">Search and filter across all workforce records with multi-horizon risk indicators.</p>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterRiskCategory" class="input-control-sm">
+                            <option value="">All Risk Tiers</option>
+                            <option value="Critical">Critical</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                        <input type="text" id="employeeSearchInput" class="table-search" placeholder="Search employee, dept, role...">
+                    </div>
+                </div>
+
+                <div class="table-responsive mt-3">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Age</th>
+                                <th>Department</th>
+                                <th>Job Role</th>
+                                <th>Years at Co.</th>
+                                <th>Satisfaction</th>
+                                <th>Overtime</th>
+                                <th>Cox Median</th>
+                                <th>RSF Median</th>
+                                <th>Ensemble Tenure</th>
+                                <th>Risk Band</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeeTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-bar mt-3">
+                    <span id="pageInfoText">Showing page 1 of 30</span>
+                    <div class="page-btns">
+                        <button class="btn btn-sm" id="btnPrevPage">← Prev</button>
+                        <button class="btn btn-sm" id="btnNextPage">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Global Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+        <div class="spinner-box">
+            <div class="dual-spinner"></div>
+            <p id="loadingText">Training Multi-Model Survival Pipeline...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

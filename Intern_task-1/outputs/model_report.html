@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Model Evaluation Report — Employee Survival Prediction</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #080b1a; color: #e8ecf4; padding: 2rem;
+            line-height: 1.6;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        h1 { font-size: 1.8rem; color: #00d4ff; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.3rem; color: #b44aff; margin: 2rem 0 1rem; border-bottom: 1px solid #2a3055; padding-bottom: 0.5rem; }
+        h3 { font-size: 1.05rem; color: #00d4ff; margin: 1.5rem 0 0.5rem; }
+        .meta { color: #8890a8; font-size: 0.85rem; margin-bottom: 2rem; }
+        .card {
+            background: rgba(15,20,45,0.75); border: 1px solid rgba(60,80,160,0.25);
+            border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem;
+        }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .metric { text-align: center; padding: 1rem; }
+        .metric-value { font-size: 1.8rem; font-weight: 700; }
+        .metric-label { font-size: 0.78rem; color: #8890a8; text-transform: uppercase; letter-spacing: 1px; }
+        .winner { color: #2ee89e; }
+        .good { color: #2ee89e; }
+        .warn { color: #ffd93d; }
+        .bad { color: #ff3b5c; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem; }
+        th { text-align: left; color: #00d4ff; padding: 8px 12px; border-bottom: 1px solid #2a3055; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 8px 12px; border-bottom: 1px solid rgba(60,80,160,0.1); }
+        .note { background: rgba(0,212,255,0.05); border-left: 3px solid #00d4ff; padding: 12px 16px; border-radius: 4px; font-size: 0.88rem; margin: 1rem 0; color: #a0b0d0; }
+        .warning { background: rgba(255,59,92,0.08); border-left: 3px solid #ff3b5c; padding: 12px 16px; border-radius: 4px; font-size: 0.88rem; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📊 Model Evaluation Report</h1>
+    <p class="meta">Employee Survival Prediction System | Generated: 2026-09-15 12:45:19</p>
+
+    <h2>1. Dataset Summary</h2>
+    <div class="card grid">
+        <div class="metric">
+            <div class="metric-value">1470</div>
+            <div class="metric-label">Total Employees</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">40</div>
+            <div class="metric-label">Features</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">237</div>
+            <div class="metric-label">Events (Resigned)</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">1233</div>
+            <div class="metric-label">Censored (Active)</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">1176</div>
+            <div class="metric-label">Training Set</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">294</div>
+            <div class="metric-label">Test Set</div>
+        </div>
+    </div>
+
+    <h2>2. Model Performance Comparison</h2>
+    <div class="card">
+        <table>
+            <tr>
+                <th>Metric</th>
+                <th>Cox PH</th>
+                <th>Random Survival Forest</th>
+            </tr>
+            <tr>
+                <td>Train C-index</td>
+                <td>0.9804</td>
+                <td>0.9868</td>
+            </tr>
+            <tr>
+                <td><strong>Test C-index</strong></td>
+                <td><strong>0.9795</strong></td>
+                <td><strong>0.9339</strong></td>
+            </tr>
+            <tr>
+                <td>CV C-index (mean ± std)</td>
+                <td>0.9743 ± 0.0078</td>
+                <td>0.9087 ± 0.0196</td>
+            </tr>
+            <tr>
+                <td>Integrated Brier Score (test)</td>
+                <td>0.0575</td>
+                <td>0.1749</td>
+            </tr>
+            <tr>
+                <td>Training Time</td>
+                <td>0.39s</td>
+                <td>1.26s</td>
+            </tr>
+        </table>
+        <div class="note">
+            <strong>Best Model:</strong> Cox PH |
+            <strong>Ensemble Weights:</strong> Cox=0.525, RSF=0.475
+        </div>
+    </div>
+
+    <h2>3. Cross-Validation Results (5-Fold)</h2>
+    <div class="card">
+        <h3>Cox PH Fold Scores</h3>
+        <p style="color:#a0b0d0">0.9689, 0.9743, 0.9761, 0.9876, 0.9644</p>
+        <p>Mean: <strong>0.9743</strong> ± 0.0078</p>
+
+        <h3>RSF Fold Scores</h3>
+        <p style="color:#a0b0d0">0.8967, 0.8888, 0.9326, 0.9323, 0.8929</p>
+        <p>Mean: <strong>0.9087</strong> ± 0.0196</p>
+    </div>
+
+    <h2>4. Cox PH Hazard Ratios</h2>
+    <div class="card">
+        <table>
+            <tr>
+                <th>Feature</th><th>Coefficient</th><th>Hazard Ratio</th>
+                <th>95% CI</th><th>p-value</th><th>Significance</th><th>Interpretation</th>
+            </tr>
+            
+        <tr>
+            <td>YearsAtCompany</td>
+            <td>-8.08</td>
+            <td><strong>0.0003</strong></td>
+            <td>[0.0001, 0.001]</td>
+            <td>0.0</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Decreases resignation hazard by 100.0%. Employees with higher values are less likely to leave.</td>
+        </tr>
+        <tr>
+            <td>Overtime_enc</td>
+            <td>0.545</td>
+            <td><strong>1.7245</strong></td>
+            <td>[1.5074, 1.973]</td>
+            <td>0.0</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Increases resignation hazard by 72.5%. Employees with higher values are more likely to leave.</td>
+        </tr>
+        <tr>
+            <td>YearsWithCurrManager</td>
+            <td>-0.5336</td>
+            <td><strong>0.5865</strong></td>
+            <td>[0.4289, 0.802]</td>
+            <td>0.0008</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Decreases resignation hazard by 41.4%. Employees with higher values are less likely to leave.</td>
+        </tr>
+        <tr>
+            <td>BusinessTravel_Travel_Frequently</td>
+            <td>0.4865</td>
+            <td><strong>1.6265</strong></td>
+            <td>[1.2388, 2.1357]</td>
+            <td>0.0005</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Increases resignation hazard by 62.7%. Employees with higher values are more likely to leave.</td>
+        </tr>
+        <tr>
+            <td>TotalWorkingYears</td>
+            <td>-0.4771</td>
+            <td><strong>0.6206</strong></td>
+            <td>[0.4125, 0.9335]</td>
+            <td>0.022</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Decreases resignation hazard by 37.9%. Employees with higher values are less likely to leave.</td>
+        </tr>
+        <tr>
+            <td>YearsInCurrentRole</td>
+            <td>-0.439</td>
+            <td><strong>0.6447</strong></td>
+            <td>[0.4708, 0.8829]</td>
+            <td>0.0062</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Decreases resignation hazard by 35.5%. Employees with higher values are less likely to leave.</td>
+        </tr>
+        <tr>
+            <td>NumCompaniesWorked</td>
+            <td>0.3547</td>
+            <td><strong>1.4258</strong></td>
+            <td>[1.2175, 1.6698]</td>
+            <td>0.0</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Increases resignation hazard by 42.6%. Employees with higher values are more likely to leave.</td>
+        </tr>
+        <tr>
+            <td>JobSatisfaction</td>
+            <td>-0.3518</td>
+            <td><strong>0.7035</strong></td>
+            <td>[0.6089, 0.8127]</td>
+            <td>0.0</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Decreases resignation hazard by 29.7%. Employees with higher values are less likely to leave.</td>
+        </tr>
+        <tr>
+            <td>EnvironmentSatisfaction</td>
+            <td>-0.3186</td>
+            <td><strong>0.7272</strong></td>
+            <td>[0.6263, 0.8442]</td>
+            <td>0.0</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Decreases resignation hazard by 27.3%. Employees with higher values are less likely to leave.</td>
+        </tr>
+        <tr>
+            <td>Age</td>
+            <td>-0.2932</td>
+            <td><strong>0.7459</strong></td>
+            <td>[0.5953, 0.9346]</td>
+            <td>0.0108</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Decreases resignation hazard by 25.4%. Employees with higher values are less likely to leave.</td>
+        </tr>
+        <tr>
+            <td>BusinessTravel_Travel_Rarely</td>
+            <td>0.2874</td>
+            <td><strong>1.333</strong></td>
+            <td>[0.9864, 1.8014]</td>
+            <td>0.0614</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.0614).</td>
+        </tr>
+        <tr>
+            <td>EducationField_Medical</td>
+            <td>-0.2789</td>
+            <td><strong>0.7566</strong></td>
+            <td>[0.5216, 1.0975]</td>
+            <td>0.1416</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.1416).</td>
+        </tr>
+        <tr>
+            <td>MaritalStatus_Single</td>
+            <td>0.2328</td>
+            <td><strong>1.2621</strong></td>
+            <td>[0.9597, 1.6597]</td>
+            <td>0.0958</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.0958).</td>
+        </tr>
+        <tr>
+            <td>EducationField_Life Sciences</td>
+            <td>-0.2097</td>
+            <td><strong>0.8108</strong></td>
+            <td>[0.5511, 1.193]</td>
+            <td>0.2872</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.2872).</td>
+        </tr>
+        <tr>
+            <td>DistanceFromHome</td>
+            <td>0.2096</td>
+            <td><strong>1.2332</strong></td>
+            <td>[1.0724, 1.4181]</td>
+            <td>0.0033</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Increases resignation hazard by 23.3%. Employees with higher values are more likely to leave.</td>
+        </tr>
+        <tr>
+            <td>JobInvolvement</td>
+            <td>-0.2066</td>
+            <td><strong>0.8134</strong></td>
+            <td>[0.7082, 0.9341]</td>
+            <td>0.0034</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Decreases resignation hazard by 18.7%. Employees with higher values are less likely to leave.</td>
+        </tr>
+        <tr>
+            <td>RelationshipSatisfaction</td>
+            <td>-0.2021</td>
+            <td><strong>0.817</strong></td>
+            <td>[0.7026, 0.9501]</td>
+            <td>0.0087</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Decreases resignation hazard by 18.3%. Employees with higher values are less likely to leave.</td>
+        </tr>
+        <tr>
+            <td>StockOptionLevel</td>
+            <td>-0.1966</td>
+            <td><strong>0.8215</strong></td>
+            <td>[0.6488, 1.0401]</td>
+            <td>0.1024</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.1024).</td>
+        </tr>
+        <tr>
+            <td>EducationField_Other</td>
+            <td>-0.1963</td>
+            <td><strong>0.8218</strong></td>
+            <td>[0.6295, 1.0727]</td>
+            <td>0.1488</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.1488).</td>
+        </tr>
+        <tr>
+            <td>Salary</td>
+            <td>-0.1723</td>
+            <td><strong>0.8418</strong></td>
+            <td>[0.6652, 1.0652]</td>
+            <td>0.1515</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.1515).</td>
+        </tr>
+        <tr>
+            <td>WorkLifeBalance</td>
+            <td>-0.1605</td>
+            <td><strong>0.8517</strong></td>
+            <td>[0.7406, 0.9796]</td>
+            <td>0.0245</td>
+            <td style="color:#2ee89e">Significant</td>
+            <td style="font-size:0.85em">Decreases resignation hazard by 14.8%. Employees with higher values are less likely to leave.</td>
+        </tr>
+        <tr>
+            <td>JobLevel</td>
+            <td>-0.155</td>
+            <td><strong>0.8564</strong></td>
+            <td>[0.6302, 1.1638]</td>
+            <td>0.3219</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.3219).</td>
+        </tr>
+        <tr>
+            <td>TrainingHours</td>
+            <td>-0.1421</td>
+            <td><strong>0.8675</strong></td>
+            <td>[0.7421, 1.0142]</td>
+            <td>0.0745</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.0745).</td>
+        </tr>
+        <tr>
+            <td>Gender_enc</td>
+            <td>0.1184</td>
+            <td><strong>1.1257</strong></td>
+            <td>[0.9675, 1.3097]</td>
+            <td>0.1254</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.1254).</td>
+        </tr>
+        <tr>
+            <td>DailyRate</td>
+            <td>-0.1014</td>
+            <td><strong>0.9036</strong></td>
+            <td>[0.7784, 1.0489]</td>
+            <td>0.1826</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.1826).</td>
+        </tr>
+        <tr>
+            <td>PerformanceRating</td>
+            <td>0.099</td>
+            <td><strong>1.104</strong></td>
+            <td>[0.872, 1.3978]</td>
+            <td>0.4111</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.4111).</td>
+        </tr>
+        <tr>
+            <td>Education</td>
+            <td>-0.0522</td>
+            <td><strong>0.9491</strong></td>
+            <td>[0.8147, 1.1056]</td>
+            <td>0.5023</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.5023).</td>
+        </tr>
+        <tr>
+            <td>EducationField_Marketing</td>
+            <td>0.0386</td>
+            <td><strong>1.0393</strong></td>
+            <td>[0.7989, 1.3521]</td>
+            <td>0.7738</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.7738).</td>
+        </tr>
+        <tr>
+            <td>MonthlyRate</td>
+            <td>0.034</td>
+            <td><strong>1.0346</strong></td>
+            <td>[0.8941, 1.1971]</td>
+            <td>0.6478</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.6478).</td>
+        </tr>
+        <tr>
+            <td>EducationField_Technical Degree</td>
+            <td>-0.0224</td>
+            <td><strong>0.9778</strong></td>
+            <td>[0.7655, 1.2491]</td>
+            <td>0.8574</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.8574).</td>
+        </tr>
+        <tr>
+            <td>HourlyRate</td>
+            <td>-0.0147</td>
+            <td><strong>0.9854</strong></td>
+            <td>[0.846, 1.1479]</td>
+            <td>0.8505</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.8505).</td>
+        </tr>
+        <tr>
+            <td>MaritalStatus_Married</td>
+            <td>0.0086</td>
+            <td><strong>1.0086</strong></td>
+            <td>[0.7986, 1.2739]</td>
+            <td>0.9425</td>
+            <td style="color:#8890a8">Not Significant</td>
+            <td style="font-size:0.85em">No statistically significant effect on resignation hazard (p=0.9425).</td>
+        </tr>
+        </table>
+    </div>
+
+    <h2>5. Calibration Analysis</h2>
+    <div class="card">
+        <h3>Cox PH Calibration</h3>
+        <table>
+            <tr><th>Time</th><th>Predicted Survival</th><th>Observed (KM)</th><th>Error</th><th>N at Risk</th></tr>
+            
+        <tr>
+            <td>6 months</td>
+            <td>0.968</td>
+            <td>0.9621</td>
+            <td style="color:#2ee89e">0.006</td>
+            <td>284</td>
+        </tr>
+        <tr>
+            <td>12 months</td>
+            <td>0.9493</td>
+            <td>0.9621</td>
+            <td style="color:#2ee89e">0.0128</td>
+            <td>284</td>
+        </tr>
+        <tr>
+            <td>18 months</td>
+            <td>0.9139</td>
+            <td>0.9424</td>
+            <td style="color:#2ee89e">0.0285</td>
+            <td>245</td>
+        </tr>
+        <tr>
+            <td>24 months</td>
+            <td>0.8909</td>
+            <td>0.9424</td>
+            <td style="color:#2ee89e">0.0515</td>
+            <td>245</td>
+        </tr>
+        </table>
+        <h3>RSF Calibration</h3>
+        <table>
+            <tr><th>Time</th><th>Predicted Survival</th><th>Observed (KM)</th><th>Error</th><th>N at Risk</th></tr>
+            
+        <tr>
+            <td>6 months</td>
+            <td>0.9633</td>
+            <td>0.9621</td>
+            <td style="color:#2ee89e">0.0012</td>
+            <td>284</td>
+        </tr>
+        <tr>
+            <td>12 months</td>
+            <td>0.9356</td>
+            <td>0.9621</td>
+            <td style="color:#2ee89e">0.0264</td>
+            <td>284</td>
+        </tr>
+        <tr>
+            <td>18 months</td>
+            <td>0.9234</td>
+            <td>0.9424</td>
+            <td style="color:#2ee89e">0.0191</td>
+            <td>245</td>
+        </tr>
+        <tr>
+            <td>24 months</td>
+            <td>0.9111</td>
+            <td>0.9424</td>
+            <td style="color:#2ee89e">0.0313</td>
+            <td>245</td>
+        </tr>
+        </table>
+    </div>
+
+    <h2>6. Risk Category Thresholds</h2>
+    <div class="card">
+        <p><strong>Method:</strong> percentile_based</p>
+        <p>Risk categories derived from quartiles of predicted median survival: Critical ≤ P25 (236.1 mo), High = P25–P50 (236.1–255.0 mo), Medium = P50–P75 (255.0–280.2 mo), Low > P75 (280.2 mo)</p>
+    </div>
+
+    <h2>7. Model Limitations</h2>
+    <div class="card">
+        <ul style="padding-left: 1.5rem; color: #a0b0d0;">
+            <li>Survival analysis assumes non-informative censoring — employees who are still active are assumed to resign eventually.</li>
+            <li>Cox PH assumes proportional hazards — the effect of each feature is constant over time. This may not hold for all features.</li>
+            <li>The model was trained on historical data and may not capture future organizational changes.</li>
+            <li>Predictions are probabilistic estimates, not deterministic outcomes.</li>
+            <li>Small sample sizes or low event rates may reduce model reliability.</li>
+            <li>SHAP explanations are approximations using KernelExplainer due to the non-standard RSF model interface.</li>
+        </ul>
+    </div>
+
+    <h2>8. Business Interpretation</h2>
+    <div class="card">
+        <p style="color:#a0b0d0">
+            The C-index measures how well the model ranks employees by resignation risk.
+            A C-index of 0.5 = random guessing, 1.0 = perfect ranking.
+            The Integrated Brier Score measures calibration accuracy — lower is better.
+            The hazard ratios indicate the multiplicative effect of each feature on the resignation hazard.
+            A hazard ratio > 1 means that feature increases risk; &lt; 1 means it decreases risk.
+            Risk categories are computed from the percentile distribution of predicted resignation timelines,
+            making them adaptive to the specific dataset rather than hardcoded.
+        </p>
+    </div>
+
+    <p class="meta" style="margin-top: 3rem; text-align: center;">
+        Total Training Time: 18.31s |
+        Report generated by Employee Survival Prediction System
+    </p>
+</div>
+</body>
+</html>
