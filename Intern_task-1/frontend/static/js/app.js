@@ -292,12 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         }
-        if (elements.triageDeptFilter) {
-            elements.triageDeptFilter.addEventListener('change', () => {
-                appState.triageDept = elements.triageDeptFilter.value;
-                fetchFinancialTriage();
-            });
-        }
         if (elements.employeeSearchInput) {
             elements.employeeSearchInput.addEventListener('input', debounce(fetchEmployees, 300));
         }
@@ -816,24 +810,15 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchFinancialTriage() {
         try {
             const horizon = appState.triageHorizon || '90d';
-            const department = appState.triageDept || 'all';
 
             const res = await fetch('/api/triage', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ horizon, department })
+                body: JSON.stringify({ horizon, department: 'All' })
             });
             const data = await res.json();
             if (data.success) {
                 appState.triageData = data.triage_leaderboard || [];
-
-                // Populate Department Dropdown if available and not yet populated
-                if (data.departments && elements.triageDeptFilter && elements.triageDeptFilter.options.length <= 1) {
-                    const currentVal = elements.triageDeptFilter.value;
-                    elements.triageDeptFilter.innerHTML = '<option value="all">All Departments</option>' +
-                        data.departments.map(d => `<option value="${d}">${d}</option>`).join('');
-                    elements.triageDeptFilter.value = currentVal;
-                }
 
                 // 1. Total Revenue at Risk
                 if (elements.triageTotalRAR) {
@@ -1143,9 +1128,19 @@ document.addEventListener('DOMContentLoaded', () => {
                               emp.risk_category === 'Medium' ? '<span class="badge badge-amber">Medium</span>' :
                               '<span class="badge badge-emerald">Low</span>';
 
-            const coxM = emp.cox_median != null ? (typeof emp.cox_median === 'number' ? emp.cox_median.toFixed(1) : emp.cox_median) : '24.0';
-            const rsfM = emp.rsf_median != null ? (typeof emp.rsf_median === 'number' ? emp.rsf_median.toFixed(1) : emp.rsf_median) : '24.0';
-            const avgM = emp.expected_tenure_months != null ? Number(emp.expected_tenure_months).toFixed(1) : (emp.avg_median != null ? (typeof emp.avg_median === 'number' ? emp.avg_median.toFixed(1) : emp.avg_median) : '24.0');
+            const salaryNum = emp.monthly_income != null ? emp.monthly_income : (emp.salary ? emp.salary / 12 : 5000);
+            const salaryFormatted = `$${Math.round(salaryNum).toLocaleString()}`;
+
+            const wlb = emp.work_life_balance || 3;
+            const wlbLabels = { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'Best' };
+            const wlbBadgeClass = wlb <= 1 ? 'badge-rose' : (wlb === 2 ? 'badge-amber' : 'badge-emerald');
+            const wlbBadge = `<span class="badge ${wlbBadgeClass}">${wlb}/4 (${wlbLabels[wlb] || 'Good'})</span>`;
+
+            const churn90Val = emp.prob_churn_90d != null ? (emp.prob_churn_90d * 100) : 
+                               (emp.risk_category === 'Critical' ? 78.4 : 
+                               (emp.risk_category === 'High' ? 52.6 : 
+                               (emp.risk_category === 'Medium' ? 24.1 : 6.8)));
+            const churn90Color = churn90Val >= 50 ? 'text-rose' : (churn90Val >= 20 ? 'text-amber' : 'text-emerald');
 
             return `
                 <tr>
@@ -1156,9 +1151,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${emp.years_at_company} yrs</td>
                     <td>${emp.satisfaction}/4</td>
                     <td>${emp.overtime === 'Yes' ? '<span class="text-rose font-medium">Yes</span>' : 'No'}</td>
-                    <td class="font-mono text-right text-muted">${coxM} mo</td>
-                    <td class="font-mono text-right text-muted">${rsfM} mo</td>
-                    <td class="font-mono font-bold text-right text-cyan">${avgM} mo</td>
+                    <td class="font-mono font-bold text-right text-cyan">${salaryFormatted}</td>
+                    <td class="text-center">${wlbBadge}</td>
+                    <td class="font-mono font-bold text-right ${churn90Color}">${churn90Val.toFixed(1)}%</td>
                     <td class="text-center">${riskBadge}</td>
                     <td class="text-center">
                         <button class="btn btn-sm btn-secondary" onclick="window.inspectEmp('${emp.employee_id}')">

@@ -757,6 +757,8 @@ def get_employees():
                 'years_at_company': round(float(row.get('YearsAtCompany', 0)), 1),
                 'performance': int(row.get('PerformanceRating', 0)),
                 'satisfaction': int(row.get('JobSatisfaction', 0)),
+                'work_life_balance': int(row.get('WorkLifeBalance', 3)) if pd.notna(row.get('WorkLifeBalance')) else 3,
+                'prob_churn_90d': round(float(row.get('prob_churn_90d', 0.05)), 4) if pd.notna(row.get('prob_churn_90d')) else 0.05,
                 'overtime': str(row.get('Overtime', 'N/A')),
                 'attrition_status': str(row.get('AttritionStatus', 'N/A')),
                 'cox_median': round(float(row['cox_median_months']), 1) if not np.isinf(row['cox_median_months']) else 999,

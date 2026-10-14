@@ -334,27 +334,65 @@ def plot_roc_comparison(roc_curves_data):
 
 def plot_confusion_matrices_grid(cm_models_data):
     """
-    Generate side-by-side Confusion Matrix heatmaps matching model_evaluation.ipynb.
+    Generate high-visibility, high-contrast Confusion Matrix heatmaps.
     cm_models_data: list of tuples (model_name, cm, accuracy, recall, f1, cmap_name)
     """
     _dark_style()
+    from matplotlib.colors import LinearSegmentedColormap
+    
+    custom_cmaps = {
+        'Purples': LinearSegmentedColormap.from_list('cpurple', ['#1e1b4b', '#4338ca', '#7c3aed', '#c084fc', '#f5f3ff']),
+        'Blues': LinearSegmentedColormap.from_list('cblue', ['#0f172a', '#1e40af', '#2563eb', '#60a5fa', '#eff6ff']),
+        'Greens': LinearSegmentedColormap.from_list('cgreen', ['#062419', '#065f46', '#059669', '#34d399', '#ecfdf5']),
+        'Oranges': LinearSegmentedColormap.from_list('corange', ['#261005', '#9a3412', '#ea580c', '#fb923c', '#fff7ed'])
+    }
+
     n_models = len(cm_models_data)
-    fig, axes = plt.subplots(1, n_models, figsize=(3.8 * n_models, 3.4))
+    fig, axes = plt.subplots(1, n_models, figsize=(4.1 * n_models, 4.6), dpi=150, facecolor='#0f1429')
     if n_models == 1:
         axes = [axes]
 
-    for ax, (title, cm, acc, rec, f1, cmap) in zip(axes, cm_models_data):
-        sns.heatmap(
-            cm, annot=True, fmt='d', cmap=cmap, cbar=False, ax=ax,
-            annot_kws={"size": 11, "weight": "bold", "color": "#ffffff"},
-            xticklabels=['Stayed (0)', 'Left (1)'],
-            yticklabels=['Stayed (0)', 'Left (1)']
-        )
-        ax.set_title(f"{title}\nAcc: {acc*100:.1f}% | Rec: {rec*100:.1f}% | F1: {f1:.3f}",
-                     fontsize=9, fontweight='600', color='#ffffff', pad=8)
-        ax.set_xlabel('Predicted Class', fontsize=8, color='#94a3b8')
-        ax.set_ylabel('Actual Class', fontsize=8, color='#94a3b8')
-        ax.tick_params(colors='#94a3b8', labelsize=8)
+    labels = [['TN\n(Stayed)', 'FP\n(False Alarm)'], ['FN\n(Missed)', 'TP\n(Caught)']]
+
+    for ax, (title, cm, acc, rec, f1, cmap_name) in zip(axes, cm_models_data):
+        ax.set_facecolor('#0f1429')
+        cm_arr = np.array(cm)
+        cmap = custom_cmaps.get(cmap_name, plt.colormaps.get(cmap_name, plt.cm.Purples))
+        im = ax.imshow(cm_arr, interpolation='nearest', cmap=cmap)
+
+        total = cm_arr.sum()
+        cm_min, cm_max = cm_arr.min(), cm_arr.max()
+        for i in range(2):
+            for j in range(2):
+                val = cm_arr[i, j]
+                ratio = (val - cm_min) / (cm_max - cm_min + 1e-8)
+                # Adaptive high-contrast text color
+                text_color = '#0b0f19' if ratio > 0.62 else '#ffffff'
+                sub_color = '#1e293b' if ratio > 0.62 else '#cbd5e1'
+
+                pct = (val / max(total, 1)) * 100
+                ax.text(j, i - 0.12, f"{val}", ha='center', va='center',
+                        fontsize=18, fontweight='bold', color=text_color)
+                ax.text(j, i + 0.18, f"{labels[i][j]} ({pct:.1f}%)", ha='center', va='center',
+                        fontsize=8.5, fontweight='600', color=sub_color)
+
+        ax.set_title(f"{title}\nAcc: {acc*100:.1f}%  |  Rec: {rec*100:.1f}%  |  F1: {f1:.3f}",
+                     fontsize=10.5, fontweight='bold', color='#ffffff', pad=10)
+        ax.set_xticks([0, 1])
+        ax.set_yticks([0, 1])
+        ax.set_xticklabels(['Stayed (0)', 'Left (1)'], fontsize=9, fontweight='600', color='#94a3b8')
+        ax.set_yticklabels(['Stayed (0)', 'Left (1)'], fontsize=9, fontweight='600', color='#94a3b8')
+        ax.set_xlabel('Predicted Class', fontsize=9, color='#64748b', labelpad=6)
+        ax.set_ylabel('Actual Class', fontsize=9, color='#64748b', labelpad=6)
+
+        # Crisp cell borders
+        for _, spine in ax.spines.items():
+            spine.set_color('#1e293b')
+            spine.set_linewidth(1.5)
+        ax.set_xticks(np.arange(-.5, 2, 1), minor=True)
+        ax.set_yticks(np.arange(-.5, 2, 1), minor=True)
+        ax.grid(which='minor', color='#0f1429', linestyle='-', linewidth=2.5)
+        ax.tick_params(which='minor', bottom=False, left=False)
 
     plt.tight_layout()
     return _fig_to_base64(fig)

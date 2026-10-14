@@ -1133,6 +1133,14 @@ p {
   display: block;
 }
 
+#confusionMatricesPlotContainer img,
+#rocCurvesPlotContainer img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
 .chart-empty-placeholder {
   color: var(--text-tertiary);
   font-size: 0.82rem;

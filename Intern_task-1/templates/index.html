@@ -445,32 +445,31 @@
                             </div>
                         </div>
 
-                        <!-- ROC Curves and Confusion Matrices Grid Plots -->
-                        <div class="grid-2-col" style="margin-top: 20px;">
-                            <div class="panel-card">
-                                <div class="panel-card-header">
-                                    <div>
-                                        <h4 class="panel-card-title">Multi-Model ROC Curves Comparison</h4>
-                                        <p class="panel-card-subtitle">Receiver Operating Characteristic curves with AUC scores across all thresholds.</p>
-                                    </div>
-                                    <span class="badge badge-blue">Discrimination Curve</span>
+                        <!-- Multi-Model ROC Curves Comparison -->
+                        <div class="panel-card" style="margin-top: 20px;">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Multi-Model Discrimination Curves (ROC-AUC Comparison)</h4>
+                                    <p class="panel-card-subtitle">Receiver Operating Characteristic curves with AUC scores across all classification thresholds.</p>
                                 </div>
-                                <div class="chart-card-container" id="rocCurvesPlotContainer" style="margin-top: 12px; min-height: 280px;">
-                                    <div class="chart-empty-placeholder">Loading Multi-Model ROC Curves...</div>
-                                </div>
+                                <span class="badge badge-blue">Discrimination Curve</span>
                             </div>
+                            <div class="chart-card-container" id="rocCurvesPlotContainer" style="margin-top: 12px; min-height: 320px;">
+                                <div class="chart-empty-placeholder">Loading Multi-Model ROC Curves...</div>
+                            </div>
+                        </div>
 
-                            <div class="panel-card">
-                                <div class="panel-card-header">
-                                    <div>
-                                        <h4 class="panel-card-title">Confusion Matrix Heatmaps (Side-by-Side)</h4>
-                                        <p class="panel-card-subtitle">True Positives, False Positives, False Negatives, and True Negatives at calibrated Youden's J thresholds.</p>
-                                    </div>
-                                    <span class="badge badge-emerald">Error Distribution</span>
+                        <!-- Confusion Matrix Heatmaps (Full-Width High Visibility) -->
+                        <div class="panel-card" style="margin-top: 20px;">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Confusion Matrix Heatmaps (Side-by-Side Model Comparison)</h4>
+                                    <p class="panel-card-subtitle">True Positives, False Positives, False Negatives, and True Negatives at calibrated Youden's J decision thresholds with high-contrast error breakdown.</p>
                                 </div>
-                                <div class="chart-card-container" id="confusionMatricesPlotContainer" style="margin-top: 12px; min-height: 280px;">
-                                    <div class="chart-empty-placeholder">Loading Confusion Matrix Heatmaps...</div>
-                                </div>
+                                <span class="badge badge-emerald">Error Distribution</span>
+                            </div>
+                            <div class="chart-card-container" id="confusionMatricesPlotContainer" style="margin-top: 12px; min-height: 360px;">
+                                <div class="chart-empty-placeholder">Loading Confusion Matrix Heatmaps...</div>
                             </div>
                         </div>
                     </div>
@@ -981,8 +980,8 @@
                         <span class="formula-math">RAR = ELV &times; P(churn) &times; Confidence_Weight &nbsp;&nbsp;|&nbsp;&nbsp; Urgency = 0.6&middot;P(churn) + 0.4&middot;RAR_norm</span>
                     </div>
 
-                    <!-- Triage Controls Bar (Horizon & Department Filters) -->
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; background: var(--bg-surface-1); padding: 12px 16px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                    <!-- Triage Controls Bar (Horizon Filter) -->
+                    <div style="display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; background: var(--bg-surface-1); padding: 12px 16px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Risk Horizon:</span>
                             <div class="horizon-segmented-group" id="triageHorizonGroup">
@@ -990,12 +989,6 @@
                                 <button class="horizon-btn" data-horizon="60d">60 Days</button>
                                 <button class="horizon-btn active" data-horizon="90d">90 Days</button>
                             </div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Department Filter:</span>
-                            <select id="triageDeptFilter" class="input-control input-control-sm" style="min-width: 200px;">
-                                <option value="All">All Departments</option>
-                            </select>
                         </div>
                     </div>
 
@@ -1455,9 +1448,9 @@
                                         <th>Tenure</th>
                                         <th>Satisfaction</th>
                                         <th>Overtime</th>
-                                        <th class="text-right">Cox Median</th>
-                                        <th class="text-right">RSF Median</th>
-                                        <th class="text-right">Ensemble Tenure</th>
+                                        <th class="text-right">Monthly Salary</th>
+                                        <th class="text-center">Work-Life Balance</th>
+                                        <th class="text-right">90-Day Flight Risk</th>
                                         <th class="text-center">Risk Tier</th>
                                         <th class="text-center">Action</th>
                                     </tr>
