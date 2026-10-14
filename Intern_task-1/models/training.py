@@ -40,7 +40,10 @@ from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
     roc_auc_score, brier_score_loss, confusion_matrix, roc_curve
 )
-from imblearn.over_sampling import SMOTE
+try:
+    from imblearn.over_sampling import SMOTE
+except (ImportError, ModuleNotFoundError):
+    SMOTE = None
 from sksurv.metrics import concordance_index_censored
 
 logger = logging.getLogger(__name__)
@@ -197,8 +200,11 @@ def train_pipeline(X, T, E, employee_info):
     # Binary Logistic Regression Baseline with SMOTE (from model_evaluation.ipynb)
     lr_start = time.time()
     try:
-        smote = SMOTE(random_state=42)
-        X_train_res, E_train_res = smote.fit_resample(X_train, E_train)
+        if SMOTE is not None:
+            smote = SMOTE(random_state=42)
+            X_train_res, E_train_res = smote.fit_resample(X_train, E_train)
+        else:
+            X_train_res, E_train_res = X_train, E_train
         lr = LogisticRegression(max_iter=1000, random_state=42)
         lr.fit(X_train_res, E_train_res)
     except Exception as e:
