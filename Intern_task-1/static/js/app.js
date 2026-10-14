@@ -722,10 +722,10 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.detailedMetricsTableBody.innerHTML = tableRows.map(r => `
                 <tr>
                     <td><strong>${r.name}</strong></td>
-                    <td class="font-mono ${r.highlight === 'base' ? 'text-cyan font-bold' : ''}">${r.base}</td>
-                    <td class="font-mono ${r.highlight === 'cox' ? 'text-cyan font-bold' : ''}">${r.cox}</td>
-                    <td class="font-mono ${r.highlight === 'rsf' ? 'text-emerald font-bold' : ''}">${r.rsf}</td>
-                    <td class="font-mono ${r.highlight === 'ens' ? 'text-emerald font-bold' : 'text-cyan font-semibold'}">${r.ens}</td>
+                    <td class="font-mono text-center ${r.highlight === 'base' ? 'text-cyan font-bold' : ''}">${r.base}</td>
+                    <td class="font-mono text-center ${r.highlight === 'cox' ? 'text-cyan font-bold' : ''}">${r.cox}</td>
+                    <td class="font-mono text-center ${r.highlight === 'rsf' ? 'text-emerald font-bold' : ''}">${r.rsf}</td>
+                    <td class="font-mono text-center ${r.highlight === 'ens' ? 'text-emerald font-bold' : 'text-cyan font-semibold'}">${r.ens}</td>
                 </tr>
             `).join('');
         }

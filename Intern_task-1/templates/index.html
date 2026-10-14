@@ -331,49 +331,49 @@
                                     <p class="panel-card-subtitle">Comprehensive benchmarking of discrimination, calibration loss, and temporal horizon capabilities.</p>
                                 </div>
                             </div>
-                            <div class="table-responsive-container">
-                                <table class="data-table">
+                            <div class="table-responsive-container no-scroll">
+                                <table class="data-table table-fixed">
                                     <thead>
                                         <tr>
-                                            <th>Model Architecture</th>
-                                            <th>Test Discrimination (C-Index / AUC)</th>
-                                            <th>Calibration Loss (Integrated Brier)</th>
-                                            <th>Time-to-Event Modeling</th>
-                                            <th>Right-Censoring Support</th>
-                                            <th>Operational Horizon</th>
+                                            <th style="width: 25%;">Model Architecture</th>
+                                            <th style="width: 16%;" class="text-center">Test Discrimination<br><span style="font-size: 0.65rem; opacity: 0.8; font-weight: 400; text-transform: none;">(C-Index / AUC)</span></th>
+                                            <th style="width: 16%;" class="text-center">Calibration Loss<br><span style="font-size: 0.65rem; opacity: 0.8; font-weight: 400; text-transform: none;">(Integrated Brier)</span></th>
+                                            <th style="width: 14%;" class="text-center">Time-to-Event</th>
+                                            <th style="width: 13%;" class="text-center">Right-Censoring</th>
+                                            <th style="width: 16%;">Operational Horizon</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
                                             <td><strong>Binary Logistic Regression (SMOTE Baseline)</strong></td>
-                                            <td class="font-mono" id="overviewBaselineCI">0.7852 (AUC)</td>
-                                            <td class="font-mono" id="overviewBaselineIBS">0.1124</td>
-                                            <td><span class="badge badge-gray">No (Static 0/1)</span></td>
-                                            <td><span class="badge badge-gray">No</span></td>
+                                            <td class="font-mono text-center" id="overviewBaselineCI">0.7852 (AUC)</td>
+                                            <td class="font-mono text-center" id="overviewBaselineIBS">0.1124</td>
+                                            <td class="text-center"><span class="badge badge-gray">No (Static 0/1)</span></td>
+                                            <td class="text-center"><span class="badge badge-gray">No</span></td>
                                             <td>Static single label</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Cox Proportional Hazards</strong></td>
-                                            <td class="font-mono" id="overviewCoxCI">0.8140</td>
-                                            <td class="font-mono" id="overviewCoxIBS">0.0892</td>
-                                            <td><span class="badge badge-blue">Yes (Semi-Parametric)</span></td>
-                                            <td><span class="badge badge-emerald">Yes</span></td>
+                                            <td class="font-mono text-center" id="overviewCoxCI">0.8140</td>
+                                            <td class="font-mono text-center" id="overviewCoxIBS">0.0892</td>
+                                            <td class="text-center"><span class="badge badge-blue">Yes (Semi-Parametric)</span></td>
+                                            <td class="text-center"><span class="badge badge-emerald">Yes</span></td>
                                             <td>Continuous parametric curves</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Random Survival Forest (RSF)</strong></td>
-                                            <td class="font-mono" id="overviewRsfCI">0.8420</td>
-                                            <td class="font-mono" id="overviewRsfIBS">0.0764</td>
-                                            <td><span class="badge badge-purple">Yes (Non-Linear ML)</span></td>
-                                            <td><span class="badge badge-emerald">Yes</span></td>
+                                            <td class="font-mono text-center" id="overviewRsfCI">0.8420</td>
+                                            <td class="font-mono text-center" id="overviewRsfIBS">0.0764</td>
+                                            <td class="text-center"><span class="badge badge-purple">Yes (Non-Linear ML)</span></td>
+                                            <td class="text-center"><span class="badge badge-emerald">Yes</span></td>
                                             <td>Non-parametric hazard ensemble</td>
                                         </tr>
                                         <tr class="highlight-row">
                                             <td><strong class="text-cyan">Self-Calibrating Survival Ensemble (Proposed)</strong></td>
-                                            <td class="font-mono font-bold text-emerald" id="overviewEnsembleCI">0.8510</td>
-                                            <td class="font-mono font-bold text-emerald" id="overviewEnsembleIBS">0.0715</td>
-                                            <td><span class="badge badge-cyan">Yes (Dynamically Weighted)</span></td>
-                                            <td><span class="badge badge-emerald">Yes</span></td>
+                                            <td class="font-mono font-bold text-emerald text-center" id="overviewEnsembleCI">0.8510</td>
+                                            <td class="font-mono font-bold text-emerald text-center" id="overviewEnsembleIBS">0.0715</td>
+                                            <td class="text-center"><span class="badge badge-cyan">Yes (Dynamically Weighted)</span></td>
+                                            <td class="text-center"><span class="badge badge-emerald">Yes</span></td>
                                             <td><strong>30d, 60d, 90d Continuous Risk</strong></td>
                                         </tr>
                                     </tbody>
@@ -425,15 +425,15 @@
                                 </div>
                                 <span class="badge badge-cyan">Held-Out Test Split (n=294)</span>
                             </div>
-                            <div class="table-responsive-container">
-                                <table class="data-table">
+                            <div class="table-responsive-container no-scroll">
+                                <table class="data-table table-fixed">
                                     <thead>
                                         <tr>
-                                            <th>Evaluation Metric</th>
-                                            <th>Binary Logistic (SMOTE Baseline)</th>
-                                            <th>Cox Proportional Hazards</th>
-                                            <th>Random Survival Forest (RSF)</th>
-                                            <th class="text-cyan">Combined Weighted Ensemble (Proposed)</th>
+                                            <th style="width: 28%;">Evaluation Metric</th>
+                                            <th style="width: 18%;" class="text-center">Binary Logistic<br><span style="font-size:0.65rem; opacity:0.8; font-weight:400; text-transform:none;">(SMOTE Baseline)</span></th>
+                                            <th style="width: 18%;" class="text-center">Cox Proportional<br><span style="font-size:0.65rem; opacity:0.8; font-weight:400; text-transform:none;">Hazards</span></th>
+                                            <th style="width: 18%;" class="text-center">Random Survival<br><span style="font-size:0.65rem; opacity:0.8; font-weight:400; text-transform:none;">Forest (RSF)</span></th>
+                                            <th style="width: 18%;" class="text-center text-cyan">Combined Weighted Ensemble<br><span style="font-size:0.65rem; opacity:0.8; font-weight:400; text-transform:none;">(Proposed)</span></th>
                                         </tr>
                                     </thead>
                                     <tbody id="detailedMetricsTableBody">
