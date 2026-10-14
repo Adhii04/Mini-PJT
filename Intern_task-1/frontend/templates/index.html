@@ -223,7 +223,7 @@
                                     <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
                                 </svg>
                             </div>
-                            <div class="kpi-value" id="kpiBestModel">Random Survival Forest</div>
+                            <div class="kpi-value" id="kpiBestModel">--</div>
                             <div class="kpi-sub">Evaluated on held-out stratified test split</div>
                         </div>
 
@@ -237,7 +237,7 @@
                                     <path d="M18 9a9 9 0 0 1-9 9"></path>
                                 </svg>
                             </div>
-                            <div class="kpi-value" id="kpiEnsembleWeights">RSF 58% | Cox 42%</div>
+                            <div class="kpi-value" id="kpiEnsembleWeights">--</div>
                             <div class="kpi-sub">Auto-calibrated via Concordance Index</div>
                         </div>
 
@@ -249,7 +249,7 @@
                                     <polyline points="17 6 23 6 23 12"></polyline>
                                 </svg>
                             </div>
-                            <div class="kpi-value text-emerald" id="kpiBaselineDelta">+7.4% vs Logistic Reg</div>
+                            <div class="kpi-value text-emerald" id="kpiBaselineDelta">--</div>
                             <div class="kpi-sub">Continuous survival discrimination vs static 0/1 binary</div>
                         </div>
 
@@ -261,7 +261,7 @@
                                     <polyline points="12 6 12 12 16 14"></polyline>
                                 </svg>
                             </div>
-                            <div class="kpi-value" id="kpiAvgTenure">24.6 Mo</div>
+                            <div class="kpi-value" id="kpiAvgTenure">--</div>
                             <div class="kpi-sub">Median survival prediction across workforce</div>
                         </div>
                     </div>
@@ -346,32 +346,32 @@
                                     <tbody>
                                         <tr>
                                             <td><strong>Binary Logistic Regression (SMOTE Baseline)</strong></td>
-                                            <td class="font-mono text-center" id="overviewBaselineCI">0.7852 (AUC)</td>
-                                            <td class="font-mono text-center" id="overviewBaselineIBS">0.1124</td>
+                                            <td class="font-mono text-center" id="overviewBaselineCI">--</td>
+                                            <td class="font-mono text-center" id="overviewBaselineIBS">--</td>
                                             <td class="text-center"><span class="badge badge-gray">No (Static 0/1)</span></td>
                                             <td class="text-center"><span class="badge badge-gray">No</span></td>
                                             <td>Static single label</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Cox Proportional Hazards</strong></td>
-                                            <td class="font-mono text-center" id="overviewCoxCI">0.8140</td>
-                                            <td class="font-mono text-center" id="overviewCoxIBS">0.0892</td>
+                                            <td class="font-mono text-center" id="overviewCoxCI">--</td>
+                                            <td class="font-mono text-center" id="overviewCoxIBS">--</td>
                                             <td class="text-center"><span class="badge badge-blue">Yes (Semi-Parametric)</span></td>
                                             <td class="text-center"><span class="badge badge-emerald">Yes</span></td>
                                             <td>Continuous parametric curves</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Random Survival Forest (RSF)</strong></td>
-                                            <td class="font-mono text-center" id="overviewRsfCI">0.8420</td>
-                                            <td class="font-mono text-center" id="overviewRsfIBS">0.0764</td>
+                                            <td class="font-mono text-center" id="overviewRsfCI">--</td>
+                                            <td class="font-mono text-center" id="overviewRsfIBS">--</td>
                                             <td class="text-center"><span class="badge badge-purple">Yes (Non-Linear ML)</span></td>
                                             <td class="text-center"><span class="badge badge-emerald">Yes</span></td>
                                             <td>Non-parametric hazard ensemble</td>
                                         </tr>
                                         <tr class="highlight-row">
                                             <td><strong class="text-cyan">Self-Calibrating Survival Ensemble (Proposed)</strong></td>
-                                            <td class="font-mono font-bold text-emerald text-center" id="overviewEnsembleCI">0.8510</td>
-                                            <td class="font-mono font-bold text-emerald text-center" id="overviewEnsembleIBS">0.0715</td>
+                                            <td class="font-mono font-bold text-emerald text-center" id="overviewEnsembleCI">--</td>
+                                            <td class="font-mono font-bold text-emerald text-center" id="overviewEnsembleIBS">--</td>
                                             <td class="text-center"><span class="badge badge-cyan">Yes (Dynamically Weighted)</span></td>
                                             <td class="text-center"><span class="badge badge-emerald">Yes</span></td>
                                             <td><strong>30d, 60d, 90d Continuous Risk</strong></td>
@@ -423,7 +423,7 @@
                                     <h4 class="panel-card-title">Comprehensive Classification & Discrimination Metrics (Held-Out Test Split)</h4>
                                     <p class="panel-card-subtitle">Exact performance breakdown calibrated via Youden's J statistic decision thresholds across binary baseline and survival models.</p>
                                 </div>
-                                <span class="badge badge-cyan">Held-Out Test Split (n=294)</span>
+                                <span class="badge badge-cyan" id="badgeSplitSize">Held-Out Test Split (Stratified 20%)</span>
                             </div>
                             <div class="table-responsive-container no-scroll">
                                 <table class="data-table table-fixed">
@@ -489,27 +489,27 @@
                             <div class="stats-metrics-strip">
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Test Concordance Index</div>
-                                    <div class="stat-box-value text-cyan" id="coxTestCI">0.8140</div>
+                                    <div class="stat-box-value text-cyan" id="coxTestCI">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Train Concordance Index</div>
-                                    <div class="stat-box-value" id="coxTrainCI">0.8290</div>
+                                    <div class="stat-box-value" id="coxTrainCI">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">5-Fold CV Concordance Index</div>
-                                    <div class="stat-box-value" id="coxCvCI">0.8115 ± 0.018</div>
+                                    <div class="stat-box-value" id="coxCvCI">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Integrated Brier Score</div>
-                                    <div class="stat-box-value" id="coxTestIBS">0.0892</div>
+                                    <div class="stat-box-value" id="coxTestIBS">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Partial Log-Likelihood</div>
-                                    <div class="stat-box-value" id="coxLogLikelihood">-1034.2</div>
+                                    <div class="stat-box-value" id="coxLogLikelihood">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Partial AIC</div>
-                                    <div class="stat-box-value" id="coxAIC">2118.4</div>
+                                    <div class="stat-box-value" id="coxAIC">--</div>
                                 </div>
                             </div>
 
@@ -520,35 +520,35 @@
                             <div class="stats-metrics-strip" style="margin-bottom: 20px;">
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Accuracy</div>
-                                    <div class="stat-box-value text-cyan" id="coxAcc">82.7%</div>
+                                    <div class="stat-box-value text-cyan" id="coxAcc">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Precision (PPV)</div>
-                                    <div class="stat-box-value" id="coxPrec">37.8%</div>
+                                    <div class="stat-box-value" id="coxPrec">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Recall (Sensitivity)</div>
-                                    <div class="stat-box-value text-emerald" id="coxRecall">70.0%</div>
+                                    <div class="stat-box-value text-emerald" id="coxRecall">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Specificity (TNR)</div>
-                                    <div class="stat-box-value" id="coxSpec">84.5%</div>
+                                    <div class="stat-box-value" id="coxSpec">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">F1-Score</div>
-                                    <div class="stat-box-value" id="coxF1">0.4912</div>
+                                    <div class="stat-box-value" id="coxF1">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">ROC-AUC</div>
-                                    <div class="stat-box-value text-purple" id="coxAuc">0.8071</div>
+                                    <div class="stat-box-value text-purple" id="coxAuc">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Optimal Threshold</div>
-                                    <div class="stat-box-value font-mono" id="coxThreshold">0.001</div>
+                                    <div class="stat-box-value font-mono" id="coxThreshold">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Confusion Matrix</div>
-                                    <div class="stat-box-value font-mono text-sm" id="coxCM">TP: 28 | FP: 46 | FN: 12 | TN: 250</div>
+                                    <div class="stat-box-value font-mono text-sm" id="coxCM">--</div>
                                 </div>
                             </div>
 
@@ -647,19 +647,19 @@
                             <div class="stats-metrics-strip">
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Test Concordance Index</div>
-                                    <div class="stat-box-value text-emerald" id="rsfTestCI">0.8420</div>
+                                    <div class="stat-box-value text-emerald" id="rsfTestCI">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Train Concordance Index</div>
-                                    <div class="stat-box-value" id="rsfTrainCI">0.9650</div>
+                                    <div class="stat-box-value" id="rsfTrainCI">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">5-Fold CV Concordance Index</div>
-                                    <div class="stat-box-value" id="rsfCvCI">0.8380 ± 0.015</div>
+                                    <div class="stat-box-value" id="rsfCvCI">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Integrated Brier Score</div>
-                                    <div class="stat-box-value" id="rsfTestIBS">0.0764</div>
+                                    <div class="stat-box-value" id="rsfTestIBS">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Estimator Count</div>
@@ -678,35 +678,35 @@
                             <div class="stats-metrics-strip" style="margin-bottom: 20px;">
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Accuracy</div>
-                                    <div class="stat-box-value text-cyan" id="rsfAcc">84.2%</div>
+                                    <div class="stat-box-value text-cyan" id="rsfAcc">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Precision (PPV)</div>
-                                    <div class="stat-box-value" id="rsfPrec">41.6%</div>
+                                    <div class="stat-box-value" id="rsfPrec">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Recall (Sensitivity)</div>
-                                    <div class="stat-box-value text-emerald" id="rsfRecall">80.0%</div>
+                                    <div class="stat-box-value text-emerald" id="rsfRecall">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Specificity (TNR)</div>
-                                    <div class="stat-box-value" id="rsfSpec">84.8%</div>
+                                    <div class="stat-box-value" id="rsfSpec">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">F1-Score</div>
-                                    <div class="stat-box-value" id="rsfF1">0.5470</div>
+                                    <div class="stat-box-value" id="rsfF1">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">ROC-AUC</div>
-                                    <div class="stat-box-value text-purple" id="rsfAuc">0.8693</div>
+                                    <div class="stat-box-value text-purple" id="rsfAuc">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Optimal Threshold</div>
-                                    <div class="stat-box-value font-mono" id="rsfThreshold">0.238</div>
+                                    <div class="stat-box-value font-mono" id="rsfThreshold">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Confusion Matrix</div>
-                                    <div class="stat-box-value font-mono text-sm" id="rsfCM">TP: 32 | FP: 45 | FN: 8 | TN: 251</div>
+                                    <div class="stat-box-value font-mono text-sm" id="rsfCM">--</div>
                                 </div>
                             </div>
 
@@ -755,11 +755,11 @@
                             <div class="stats-metrics-strip">
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Cox PH Weight (w_Cox)</div>
-                                    <div class="stat-box-value" id="ensWeightCox">0.42 (42%)</div>
+                                    <div class="stat-box-value" id="ensWeightCox">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">RSF Weight (w_RSF)</div>
-                                    <div class="stat-box-value text-cyan" id="ensWeightRSF">0.58 (58%)</div>
+                                    <div class="stat-box-value text-cyan" id="ensWeightRSF">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">30-Day Departure Horizon</div>
@@ -786,35 +786,35 @@
                             <div class="stats-metrics-strip" style="margin-bottom: 20px;">
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Accuracy</div>
-                                    <div class="stat-box-value text-cyan" id="ensAcc">86.3%</div>
+                                    <div class="stat-box-value text-cyan" id="ensAcc">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Precision (PPV)</div>
-                                    <div class="stat-box-value" id="ensPrec">45.6%</div>
+                                    <div class="stat-box-value" id="ensPrec">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Recall (Sensitivity)</div>
-                                    <div class="stat-box-value text-emerald" id="ensRecall">77.5%</div>
+                                    <div class="stat-box-value text-emerald" id="ensRecall">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Specificity (TNR)</div>
-                                    <div class="stat-box-value" id="ensSpec">87.5%</div>
+                                    <div class="stat-box-value" id="ensSpec">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">F1-Score</div>
-                                    <div class="stat-box-value" id="ensF1">0.5741</div>
+                                    <div class="stat-box-value" id="ensF1">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">ROC-AUC</div>
-                                    <div class="stat-box-value text-purple" id="ensAuc">0.8705</div>
+                                    <div class="stat-box-value text-purple" id="ensAuc">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Optimal Threshold</div>
-                                    <div class="stat-box-value font-mono" id="ensThreshold">0.135</div>
+                                    <div class="stat-box-value font-mono" id="ensThreshold">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Confusion Matrix</div>
-                                    <div class="stat-box-value font-mono text-sm" id="ensCM">TP: 31 | FP: 37 | FN: 9 | TN: 259</div>
+                                    <div class="stat-box-value font-mono text-sm" id="ensCM">--</div>
                                 </div>
                             </div>
                         </div>
@@ -834,39 +834,39 @@
                             <div class="stats-metrics-strip" style="margin-bottom: 20px;">
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">ROC-AUC Score</div>
-                                    <div class="stat-box-value text-purple" id="baselineAuc">0.7852</div>
+                                    <div class="stat-box-value text-purple" id="baselineAuc">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Brier Score Loss</div>
-                                    <div class="stat-box-value" id="baselineBrier">0.1124</div>
+                                    <div class="stat-box-value" id="baselineBrier">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Accuracy</div>
-                                    <div class="stat-box-value text-cyan" id="baselineAcc">86.4%</div>
+                                    <div class="stat-box-value text-cyan" id="baselineAcc">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Precision (PPV)</div>
-                                    <div class="stat-box-value" id="baselinePrec">65.2%</div>
+                                    <div class="stat-box-value" id="baselinePrec">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Recall (Sensitivity)</div>
-                                    <div class="stat-box-value text-emerald" id="baselineRecall">38.5%</div>
+                                    <div class="stat-box-value text-emerald" id="baselineRecall">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Specificity (TNR)</div>
-                                    <div class="stat-box-value" id="baselineSpec">89.2%</div>
+                                    <div class="stat-box-value" id="baselineSpec">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">F1-Score</div>
-                                    <div class="stat-box-value" id="baselineF1">0.4839</div>
+                                    <div class="stat-box-value" id="baselineF1">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Optimal Threshold</div>
-                                    <div class="stat-box-value font-mono" id="baselineThreshold">0.500</div>
+                                    <div class="stat-box-value font-mono" id="baselineThreshold">--</div>
                                 </div>
                                 <div class="stat-metric-box">
                                     <div class="stat-box-title">Confusion Matrix</div>
-                                    <div class="stat-box-value font-mono text-sm" id="baselineCM">TP: 15 | FP: 8 | FN: 24 | TN: 247</div>
+                                    <div class="stat-box-value font-mono text-sm" id="baselineCM">--</div>
                                 </div>
                             </div>
 

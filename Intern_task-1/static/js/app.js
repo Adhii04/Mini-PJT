@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         detailedMetricsTableBody: document.getElementById('detailedMetricsTableBody'),
         rocCurvesPlotContainer: document.getElementById('rocCurvesPlotContainer'),
         confusionMatricesPlotContainer: document.getElementById('confusionMatricesPlotContainer'),
+        badgeSplitSize: document.getElementById('badgeSplitSize'),
 
         // Baseline Boxes
         baselineAuc: document.getElementById('baselineAuc'),
@@ -413,8 +414,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (elements.btnLoadHealthcare) elements.btnLoadHealthcare.classList.toggle('active', preset === 'healthcare');
                 if (elements.datasetStatusText) elements.datasetStatusText.textContent = data.message;
                 
-                // Retrain pipeline on newly selected preset
-                await runTrainingPipeline();
+                // Immediately update dashboard with genuine dataset metrics
+                await Promise.all([
+                    fetchOverview(),
+                    fetchFinancialTriage(),
+                    fetchEmployees()
+                ]);
             } else {
                 alert(data.error || 'Failed to load dataset preset');
             }
@@ -504,75 +509,82 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderOverviewMetrics(data) {
-        // Global KPIs
-        if (elements.kpiBestModel) elements.kpiBestModel.textContent = data.best_model || 'Random Survival Forest';
-        const w = data.ensemble_weights || { cox: 0.42, rsf: 0.58 };
+        // Global Top KPI Cards
+        if (elements.kpiBestModel) elements.kpiBestModel.textContent = data.best_model || '--';
+        const w = data.ensemble_weights || { cox: 0.5, rsf: 0.5 };
         if (elements.kpiEnsembleWeights) {
             elements.kpiEnsembleWeights.textContent = `RSF ${(w.rsf * 100).toFixed(0)}% | Cox ${(w.cox * 100).toFixed(0)}%`;
         }
         if (elements.kpiAvgTenure) {
-            elements.kpiAvgTenure.textContent = `${data.avg_predicted_tenure || 24.6} Mo`;
+            elements.kpiAvgTenure.textContent = data.avg_predicted_tenure != null ? `${Number(data.avg_predicted_tenure).toFixed(1)} Mo` : '--';
+        }
+
+        // Dynamic Baseline Improvement Delta KPI
+        if (elements.kpiBaselineDelta) {
+            elements.kpiBaselineDelta.textContent = data.baseline_delta || '--';
+        }
+
+        if (elements.badgeSplitSize) {
+            const splitN = data.split?.test_size || (data.total_employees ? Math.round(data.total_employees * 0.2) : 294);
+            elements.badgeSplitSize.textContent = `Held-Out Test Split (n=${splitN})`;
         }
 
         // Cox PH Metrics
         const coxMetrics = data.metrics?.cox || {};
-        const coxTestVal = coxMetrics.test_c_index ? coxMetrics.test_c_index.toFixed(4) : '0.8140';
-        const coxIbsVal = coxMetrics.test_ibs ? coxMetrics.test_ibs.toFixed(4) : '0.0892';
+        const coxTestVal = coxMetrics.test_c_index != null ? Number(coxMetrics.test_c_index).toFixed(4) : '--';
+        const coxIbsVal = coxMetrics.test_ibs != null ? Number(coxMetrics.test_ibs).toFixed(4) : '--';
         if (elements.coxTestCI) elements.coxTestCI.textContent = coxTestVal;
         if (elements.overviewCoxCI) elements.overviewCoxCI.textContent = coxTestVal;
-        if (elements.coxTrainCI) elements.coxTrainCI.textContent = coxMetrics.train_c_index ? coxMetrics.train_c_index.toFixed(4) : '0.8290';
+        if (elements.coxTrainCI) elements.coxTrainCI.textContent = coxMetrics.train_c_index != null ? Number(coxMetrics.train_c_index).toFixed(4) : '--';
         
         const coxCv = data.cross_validation?.cox;
         if (elements.coxCvCI) {
-            elements.coxCvCI.textContent = coxCv ? `${coxCv.mean.toFixed(4)} ± ${coxCv.std.toFixed(4)}` : '0.8115 ± 0.018';
+            elements.coxCvCI.textContent = coxCv && coxCv.mean != null ? `${coxCv.mean.toFixed(4)} ± ${coxCv.std.toFixed(4)}` : '--';
         }
         if (elements.coxTestIBS) elements.coxTestIBS.textContent = coxIbsVal;
         if (elements.overviewCoxIBS) elements.overviewCoxIBS.textContent = coxIbsVal;
 
         if (data.cph_stats) {
-            if (elements.coxLogLikelihood) elements.coxLogLikelihood.textContent = data.cph_stats.log_likelihood || '-1034.2';
-            if (elements.coxAIC) elements.coxAIC.textContent = data.cph_stats.aic || '2118.4';
+            if (elements.coxLogLikelihood) elements.coxLogLikelihood.textContent = data.cph_stats.log_likelihood != null ? data.cph_stats.log_likelihood : '--';
+            if (elements.coxAIC) elements.coxAIC.textContent = data.cph_stats.aic != null ? data.cph_stats.aic : '--';
         }
 
         // RSF Metrics
         const rsfMetrics = data.metrics?.rsf || {};
-        const rsfTestVal = rsfMetrics.test_c_index ? rsfMetrics.test_c_index.toFixed(4) : '0.8420';
-        const rsfIbsVal = rsfMetrics.test_ibs ? rsfMetrics.test_ibs.toFixed(4) : '0.0764';
+        const rsfTestVal = rsfMetrics.test_c_index != null ? Number(rsfMetrics.test_c_index).toFixed(4) : '--';
+        const rsfIbsVal = rsfMetrics.test_ibs != null ? Number(rsfMetrics.test_ibs).toFixed(4) : '--';
         if (elements.rsfTestCI) elements.rsfTestCI.textContent = rsfTestVal;
         if (elements.overviewRsfCI) elements.overviewRsfCI.textContent = rsfTestVal;
-        if (elements.rsfTrainCI) elements.rsfTrainCI.textContent = rsfMetrics.train_c_index ? rsfMetrics.train_c_index.toFixed(4) : '0.9650';
+        if (elements.rsfTrainCI) elements.rsfTrainCI.textContent = rsfMetrics.train_c_index != null ? Number(rsfMetrics.train_c_index).toFixed(4) : '--';
 
         const rsfCv = data.cross_validation?.rsf;
         if (elements.rsfCvCI) {
-            elements.rsfCvCI.textContent = rsfCv ? `${rsfCv.mean.toFixed(4)} ± ${rsfCv.std.toFixed(4)}` : '0.8380 ± 0.015';
+            elements.rsfCvCI.textContent = rsfCv && rsfCv.mean != null ? `${rsfCv.mean.toFixed(4)} ± ${rsfCv.std.toFixed(4)}` : '--';
         }
         if (elements.rsfTestIBS) elements.rsfTestIBS.textContent = rsfIbsVal;
+
         // Ensemble Overview Row
         const ensMetrics = data.metrics?.ensemble || {};
-        const ensCIVal = ensMetrics.test_c_index ? ensMetrics.test_c_index.toFixed(4) : (data.best_model === 'Random Survival Forest' ? rsfTestVal : coxTestVal);
-        const ensIBSVal = ensMetrics.test_ibs ? ensMetrics.test_ibs.toFixed(4) : (data.best_model === 'Random Survival Forest' ? rsfIbsVal : coxIbsVal);
+        const ensCIVal = ensMetrics.test_c_index != null ? Number(ensMetrics.test_c_index).toFixed(4) : (data.ensemble_c_index != null ? Number(data.ensemble_c_index).toFixed(4) : '--');
+        const ensIBSVal = ensMetrics.test_ibs != null ? Number(ensMetrics.test_ibs).toFixed(4) : (data.ensemble_ibs != null ? Number(data.ensemble_ibs).toFixed(4) : '--');
         if (elements.overviewEnsembleCI) elements.overviewEnsembleCI.textContent = ensCIVal;
         if (elements.overviewEnsembleIBS) elements.overviewEnsembleIBS.textContent = ensIBSVal;
 
         // Baseline SMOTE Logistic Regression Metrics
         if (data.baseline_stats) {
             const bs = data.baseline_stats;
-            const bAuc = (bs.c_index_auc != null ? bs.c_index_auc : (bs.roc_auc != null ? bs.roc_auc : 0.7852)).toFixed(4);
-            const bBrier = bs.brier_score != null ? bs.brier_score.toFixed(4) : '0.1124';
-            if (elements.overviewBaselineCI) elements.overviewBaselineCI.textContent = bAuc;
+            const bAucNum = bs.c_index_auc != null ? bs.c_index_auc : bs.roc_auc;
+            const bAuc = bAucNum != null ? Number(bAucNum).toFixed(4) : '--';
+            const bBrier = bs.brier_score != null ? Number(bs.brier_score).toFixed(4) : '--';
+            if (elements.overviewBaselineCI) elements.overviewBaselineCI.textContent = bAuc !== '--' ? `${bAuc} (AUC)` : '--';
             if (elements.overviewBaselineIBS) elements.overviewBaselineIBS.textContent = bBrier;
 
             if (elements.baselineAuc) elements.baselineAuc.textContent = bAuc;
             if (elements.baselineBrier) elements.baselineBrier.textContent = bBrier;
-            if (elements.baselineAcc) elements.baselineAcc.textContent = bs.accuracy != null ? `${(bs.accuracy * 100).toFixed(1)}%` : '86.4%';
-            if (elements.baselinePrec) elements.baselinePrec.textContent = bs.precision != null ? `${(bs.precision * 100).toFixed(1)}%` : '65.2%';
-            if (elements.baselineRecall) elements.baselineRecall.textContent = bs.recall != null ? `${(bs.recall * 100).toFixed(1)}%` : '38.5%';
-            if (elements.baselineF1) elements.baselineF1.textContent = (bs.f1_score != null ? bs.f1_score : (bs.f1 != null ? bs.f1 : 0.4839)).toFixed(4);
-        }
-
-        // Dynamic Baseline Improvement Delta KPI
-        if (elements.kpiBaselineDelta && data.baseline_delta) {
-            elements.kpiBaselineDelta.textContent = data.baseline_delta;
+            if (elements.baselineAcc) elements.baselineAcc.textContent = bs.accuracy != null ? `${(bs.accuracy * 100).toFixed(1)}%` : '--';
+            if (elements.baselinePrec) elements.baselinePrec.textContent = bs.precision != null ? `${(bs.precision * 100).toFixed(1)}%` : '--';
+            if (elements.baselineRecall) elements.baselineRecall.textContent = bs.recall != null ? `${(bs.recall * 100).toFixed(1)}%` : '--';
+            if (elements.baselineF1) elements.baselineF1.textContent = bs.f1_score != null ? Number(bs.f1_score).toFixed(4) : (bs.f1 != null ? Number(bs.f1).toFixed(4) : '--');
         }
 
         // Ensemble Weights
@@ -586,135 +598,143 @@ document.addEventListener('DOMContentLoaded', () => {
         const ensCM = cmData.ensemble || data.metrics?.ensemble?.classification || {};
         const baseCM = cmData.baseline || data.baseline_stats || {};
 
-        // Helper formatting functions
-        const fmtPct = (val, def = '--') => (val != null ? `${(val * 100).toFixed(2)}%` : def);
-        const fmtNum = (val, dec = 4, def = '--') => (val != null ? Number(val).toFixed(dec) : def);
-        const fmtCount = (val, def = '--') => (val != null ? val : def);
+        // Helper formatting functions (no hardcoded numbers)
+        const fmtPct = (val) => (val != null ? `${(Number(val) * 100).toFixed(2)}%` : '--');
+        const fmtNum = (val, dec = 4) => (val != null ? Number(val).toFixed(dec) : '--');
+        const fmtCount = (val) => (val != null ? val : '--');
 
         // Update Subtab 1: Cox PH Classification Cards
-        if (elements.coxAcc) elements.coxAcc.textContent = fmtPct(coxCM.accuracy, '82.74%');
-        if (elements.coxPrec) elements.coxPrec.textContent = fmtPct(coxCM.precision, '37.84%');
-        if (elements.coxRecall) elements.coxRecall.textContent = fmtPct(coxCM.recall, '70.00%');
-        if (elements.coxSpec) elements.coxSpec.textContent = fmtPct(coxCM.specificity, '84.46%');
-        if (elements.coxF1) elements.coxF1.textContent = fmtNum(coxCM.f1_score, 4, '0.4912');
-        if (elements.coxAuc) elements.coxAuc.textContent = fmtNum(coxCM.roc_auc, 4, '0.8071');
-        if (elements.coxThreshold) elements.coxThreshold.textContent = fmtNum(coxCM.threshold, 3, '0.001');
-        if (elements.coxCM) elements.coxCM.textContent = `TP: ${fmtCount(coxCM.TP, 28)} | FP: ${fmtCount(coxCM.FP, 46)} | FN: ${fmtCount(coxCM.FN, 12)} | TN: ${fmtCount(coxCM.TN, 250)}`;
+        if (elements.coxAcc) elements.coxAcc.textContent = fmtPct(coxCM.accuracy);
+        if (elements.coxPrec) elements.coxPrec.textContent = fmtPct(coxCM.precision);
+        if (elements.coxRecall) elements.coxRecall.textContent = fmtPct(coxCM.recall);
+        if (elements.coxSpec) elements.coxSpec.textContent = fmtPct(coxCM.specificity);
+        if (elements.coxF1) elements.coxF1.textContent = fmtNum(coxCM.f1_score, 4);
+        if (elements.coxAuc) elements.coxAuc.textContent = fmtNum(coxCM.roc_auc, 4);
+        if (elements.coxThreshold) elements.coxThreshold.textContent = fmtNum(coxCM.threshold, 3);
+        if (elements.coxCM) {
+            elements.coxCM.textContent = coxCM.TP != null ? `TP: ${coxCM.TP} | FP: ${coxCM.FP} | FN: ${coxCM.FN} | TN: ${coxCM.TN}` : '--';
+        }
 
         // Update Subtab 2: RSF Classification Cards
-        if (elements.rsfAcc) elements.rsfAcc.textContent = fmtPct(rsfCM.accuracy, '84.23%');
-        if (elements.rsfPrec) elements.rsfPrec.textContent = fmtPct(rsfCM.precision, '41.56%');
-        if (elements.rsfRecall) elements.rsfRecall.textContent = fmtPct(rsfCM.recall, '80.00%');
-        if (elements.rsfSpec) elements.rsfSpec.textContent = fmtPct(rsfCM.specificity, '84.80%');
-        if (elements.rsfF1) elements.rsfF1.textContent = fmtNum(rsfCM.f1_score, 4, '0.5470');
-        if (elements.rsfAuc) elements.rsfAuc.textContent = fmtNum(rsfCM.roc_auc, 4, '0.8693');
-        if (elements.rsfThreshold) elements.rsfThreshold.textContent = fmtNum(rsfCM.threshold, 3, '0.238');
-        if (elements.rsfCM) elements.rsfCM.textContent = `TP: ${fmtCount(rsfCM.TP, 32)} | FP: ${fmtCount(rsfCM.FP, 45)} | FN: ${fmtCount(rsfCM.FN, 8)} | TN: ${fmtCount(rsfCM.TN, 251)}`;
+        if (elements.rsfAcc) elements.rsfAcc.textContent = fmtPct(rsfCM.accuracy);
+        if (elements.rsfPrec) elements.rsfPrec.textContent = fmtPct(rsfCM.precision);
+        if (elements.rsfRecall) elements.rsfRecall.textContent = fmtPct(rsfCM.recall);
+        if (elements.rsfSpec) elements.rsfSpec.textContent = fmtPct(rsfCM.specificity);
+        if (elements.rsfF1) elements.rsfF1.textContent = fmtNum(rsfCM.f1_score, 4);
+        if (elements.rsfAuc) elements.rsfAuc.textContent = fmtNum(rsfCM.roc_auc, 4);
+        if (elements.rsfThreshold) elements.rsfThreshold.textContent = fmtNum(rsfCM.threshold, 3);
+        if (elements.rsfCM) {
+            elements.rsfCM.textContent = rsfCM.TP != null ? `TP: ${rsfCM.TP} | FP: ${rsfCM.FP} | FN: ${rsfCM.FN} | TN: ${rsfCM.TN}` : '--';
+        }
 
         // Update Subtab 3: Ensemble Classification Cards
-        if (elements.ensAcc) elements.ensAcc.textContent = fmtPct(ensCM.accuracy, '86.31%');
-        if (elements.ensPrec) elements.ensPrec.textContent = fmtPct(ensCM.precision, '45.59%');
-        if (elements.ensRecall) elements.ensRecall.textContent = fmtPct(ensCM.recall, '77.50%');
-        if (elements.ensSpec) elements.ensSpec.textContent = fmtPct(ensCM.specificity, '87.50%');
-        if (elements.ensF1) elements.ensF1.textContent = fmtNum(ensCM.f1_score, 4, '0.5741');
-        if (elements.ensAuc) elements.ensAuc.textContent = fmtNum(ensCM.roc_auc, 4, '0.8705');
-        if (elements.ensThreshold) elements.ensThreshold.textContent = fmtNum(ensCM.threshold, 3, '0.135');
-        if (elements.ensCM) elements.ensCM.textContent = `TP: ${fmtCount(ensCM.TP, 31)} | FP: ${fmtCount(ensCM.FP, 37)} | FN: ${fmtCount(ensCM.FN, 9)} | TN: ${fmtCount(ensCM.TN, 259)}`;
+        if (elements.ensAcc) elements.ensAcc.textContent = fmtPct(ensCM.accuracy);
+        if (elements.ensPrec) elements.ensPrec.textContent = fmtPct(ensCM.precision);
+        if (elements.ensRecall) elements.ensRecall.textContent = fmtPct(ensCM.recall);
+        if (elements.ensSpec) elements.ensSpec.textContent = fmtPct(ensCM.specificity);
+        if (elements.ensF1) elements.ensF1.textContent = fmtNum(ensCM.f1_score, 4);
+        if (elements.ensAuc) elements.ensAuc.textContent = fmtNum(ensCM.roc_auc, 4);
+        if (elements.ensThreshold) elements.ensThreshold.textContent = fmtNum(ensCM.threshold, 3);
+        if (elements.ensCM) {
+            elements.ensCM.textContent = ensCM.TP != null ? `TP: ${ensCM.TP} | FP: ${ensCM.FP} | FN: ${ensCM.FN} | TN: ${ensCM.TN}` : '--';
+        }
 
         // Update Subtab 4: Baseline Classification Cards
-        if (elements.baselineSpec) elements.baselineSpec.textContent = fmtPct(baseCM.specificity, '89.20%');
-        if (elements.baselineThreshold) elements.baselineThreshold.textContent = fmtNum(baseCM.threshold, 3, '0.500');
-        if (elements.baselineCM) elements.baselineCM.textContent = `TP: ${fmtCount(baseCM.TP, 15)} | FP: ${fmtCount(baseCM.FP, 8)} | FN: ${fmtCount(baseCM.FN, 24)} | TN: ${fmtCount(baseCM.TN, 247)}`;
+        if (elements.baselineSpec) elements.baselineSpec.textContent = fmtPct(baseCM.specificity);
+        if (elements.baselineThreshold) elements.baselineThreshold.textContent = fmtNum(baseCM.threshold, 3);
+        if (elements.baselineCM) {
+            elements.baselineCM.textContent = baseCM.TP != null ? `TP: ${baseCM.TP} | FP: ${baseCM.FP} | FN: ${baseCM.FN} | TN: ${baseCM.TN}` : '--';
+        }
 
         // Populate Comprehensive Classification Table (Overview subtab)
         if (elements.detailedMetricsTableBody) {
             const tableRows = [
                 {
                     name: 'Accuracy',
-                    base: fmtPct(baseCM.accuracy, '86.39%'),
-                    cox: fmtPct(coxCM.accuracy, '82.74%'),
-                    rsf: fmtPct(rsfCM.accuracy, '84.23%'),
-                    ens: fmtPct(ensCM.accuracy, '86.31%'),
+                    base: fmtPct(baseCM.accuracy),
+                    cox: fmtPct(coxCM.accuracy),
+                    rsf: fmtPct(rsfCM.accuracy),
+                    ens: fmtPct(ensCM.accuracy),
                     highlight: 'ens'
                 },
                 {
                     name: 'Precision (PPV)',
-                    base: fmtPct(baseCM.precision, '65.22%'),
-                    cox: fmtPct(coxCM.precision, '37.84%'),
-                    rsf: fmtPct(rsfCM.precision, '41.56%'),
-                    ens: fmtPct(ensCM.precision, '45.59%'),
+                    base: fmtPct(baseCM.precision),
+                    cox: fmtPct(coxCM.precision),
+                    rsf: fmtPct(rsfCM.precision),
+                    ens: fmtPct(ensCM.precision),
                     highlight: 'base'
                 },
                 {
                     name: 'Recall / Sensitivity (Caught Leavers)',
-                    base: fmtPct(baseCM.recall, '38.46%'),
-                    cox: fmtPct(coxCM.recall, '70.00%'),
-                    rsf: fmtPct(rsfCM.recall, '80.00%'),
-                    ens: fmtPct(ensCM.recall, '77.50%'),
+                    base: fmtPct(baseCM.recall),
+                    cox: fmtPct(coxCM.recall),
+                    rsf: fmtPct(rsfCM.recall),
+                    ens: fmtPct(ensCM.recall),
                     highlight: 'rsf'
                 },
                 {
                     name: 'Specificity / TNR (Correct Stayers)',
-                    base: fmtPct(baseCM.specificity, '89.20%'),
-                    cox: fmtPct(coxCM.specificity, '84.46%'),
-                    rsf: fmtPct(rsfCM.specificity, '84.80%'),
-                    ens: fmtPct(ensCM.specificity, '87.50%'),
+                    base: fmtPct(baseCM.specificity),
+                    cox: fmtPct(coxCM.specificity),
+                    rsf: fmtPct(rsfCM.specificity),
+                    ens: fmtPct(ensCM.specificity),
                     highlight: 'base'
                 },
                 {
                     name: 'F1-Score (Harmonic Mean)',
-                    base: fmtNum(baseCM.f1_score, 4, '0.4839'),
-                    cox: fmtNum(coxCM.f1_score, 4, '0.4912'),
-                    rsf: fmtNum(rsfCM.f1_score, 4, '0.5470'),
-                    ens: fmtNum(ensCM.f1_score, 4, '0.5741'),
+                    base: fmtNum(baseCM.f1_score, 4),
+                    cox: fmtNum(coxCM.f1_score, 4),
+                    rsf: fmtNum(rsfCM.f1_score, 4),
+                    ens: fmtNum(ensCM.f1_score, 4),
                     highlight: 'ens'
                 },
                 {
                     name: 'Area Under ROC Curve (ROC-AUC)',
-                    base: fmtNum(baseCM.roc_auc || baseCM.c_index_auc, 4, '0.7852'),
-                    cox: fmtNum(coxCM.roc_auc, 4, '0.8071'),
-                    rsf: fmtNum(rsfCM.roc_auc, 4, '0.8693'),
-                    ens: fmtNum(ensCM.roc_auc, 4, '0.8705'),
+                    base: fmtNum(baseCM.roc_auc || baseCM.c_index_auc, 4),
+                    cox: fmtNum(coxCM.roc_auc, 4),
+                    rsf: fmtNum(rsfCM.roc_auc, 4),
+                    ens: fmtNum(ensCM.roc_auc, 4),
                     highlight: 'ens'
                 },
                 {
                     name: 'True Positives (Caught Leavers count)',
-                    base: `${fmtCount(baseCM.TP, 15)} leavers`,
-                    cox: `${fmtCount(coxCM.TP, 28)} leavers`,
-                    rsf: `${fmtCount(rsfCM.TP, 32)} leavers`,
-                    ens: `${fmtCount(ensCM.TP, 31)} leavers`,
+                    base: baseCM.TP != null ? `${baseCM.TP} leavers` : '--',
+                    cox: coxCM.TP != null ? `${coxCM.TP} leavers` : '--',
+                    rsf: rsfCM.TP != null ? `${rsfCM.TP} leavers` : '--',
+                    ens: ensCM.TP != null ? `${ensCM.TP} leavers` : '--',
                     highlight: 'rsf'
                 },
                 {
                     name: 'False Negatives (Missed Leavers - Risk)',
-                    base: `<span class="text-rose font-bold">${fmtCount(baseCM.FN, 24)} missed</span>`,
-                    cox: `<span class="text-amber">${fmtCount(coxCM.FN, 12)} missed</span>`,
-                    rsf: `<span class="text-emerald font-bold">${fmtCount(rsfCM.FN, 8)} missed</span>`,
-                    ens: `<span class="text-emerald font-bold">${fmtCount(ensCM.FN, 9)} missed</span>`,
+                    base: baseCM.FN != null ? `<span class="text-rose font-bold">${baseCM.FN} missed</span>` : '--',
+                    cox: coxCM.FN != null ? `<span class="text-amber">${coxCM.FN} missed</span>` : '--',
+                    rsf: rsfCM.FN != null ? `<span class="text-emerald font-bold">${rsfCM.FN} missed</span>` : '--',
+                    ens: ensCM.FN != null ? `<span class="text-emerald font-bold">${ensCM.FN} missed</span>` : '--',
                     highlight: 'none'
                 },
                 {
                     name: 'False Positives (False Alarms)',
-                    base: `${fmtCount(baseCM.FP, 8)}`,
-                    cox: `${fmtCount(coxCM.FP, 46)}`,
-                    rsf: `${fmtCount(rsfCM.FP, 45)}`,
-                    ens: `${fmtCount(ensCM.FP, 37)}`,
+                    base: fmtCount(baseCM.FP),
+                    cox: fmtCount(coxCM.FP),
+                    rsf: fmtCount(rsfCM.FP),
+                    ens: fmtCount(ensCM.FP),
                     highlight: 'none'
                 },
                 {
                     name: 'True Negatives (Correct Stayers count)',
-                    base: `${fmtCount(baseCM.TN, 247)}`,
-                    cox: `${fmtCount(coxCM.TN, 250)}`,
-                    rsf: `${fmtCount(rsfCM.TN, 251)}`,
-                    ens: `${fmtCount(ensCM.TN, 259)}`,
+                    base: fmtCount(baseCM.TN),
+                    cox: fmtCount(coxCM.TN),
+                    rsf: fmtCount(rsfCM.TN),
+                    ens: fmtCount(ensCM.TN),
                     highlight: 'none'
                 },
                 {
                     name: 'Optimal Decision Threshold (Youden\'s J)',
-                    base: fmtNum(baseCM.threshold, 3, '0.500'),
-                    cox: fmtNum(coxCM.threshold, 3, '0.001'),
-                    rsf: fmtNum(rsfCM.threshold, 3, '0.238'),
-                    ens: fmtNum(ensCM.threshold, 3, '0.135'),
+                    base: fmtNum(baseCM.threshold, 3),
+                    cox: fmtNum(coxCM.threshold, 3),
+                    rsf: fmtNum(rsfCM.threshold, 3),
+                    ens: fmtNum(ensCM.threshold, 3),
                     highlight: 'none'
                 }
             ];

@@ -69,93 +69,169 @@ state = {
     'risk_thresholds': None,
     'ensemble_weights': None,
     'hazard_ratios': None,
+    'dataset_key': 'ibm',
+    'dataset_name': 'IBM HR Analytics',
 }
 
 
-def _auto_init():
-    """Auto-load IBM dataset and pre-trained models on startup if available."""
+def load_dataset_state(dataset_key='ibm'):
+    """
+    Load dataset and its corresponding trained models, metrics, and predictions.
+    Supports 'ibm', 'healthcare', or 'custom'.
+    """
     try:
-        ibm_path = os.path.join(app.root_path, 'Datasets', 'IBM-Dataset', 'WA_Fn-UseC_-HR-Employee-Attrition.csv')
-        if os.path.exists(ibm_path):
-            df = pd.read_csv(ibm_path)
-            valid, msg, mapped_df = validate_dataset(df)
-            if valid:
-                state['df'] = mapped_df
-                X, T, E, employee_info, scaler = get_survival_data(mapped_df)
-                state['X'] = X
-                state['T'] = T
-                state['E'] = E
-                state['employee_info'] = employee_info
-                state['scaler'] = scaler
-                
-                # Check for saved models
-                saved_dir = os.path.join(app.root_path, 'outputs', 'saved_models')
-                if os.path.exists(os.path.join(saved_dir, 'cox_ph_model.pkl')):
-                    from models.persistence import load_models
-                    loaded = load_models(saved_dir)
-                    if loaded:
-                        state['cph'] = loaded.get('cph')
-                        state['rsf'] = loaded.get('rsf')
-                        state['kmf'] = fit_kaplan_meier(T, E)
-                        state['ensemble_weights'] = loaded.get('ensemble_weights', {'cox': 0.42, 'rsf': 0.58})
-                        state['risk_thresholds'] = loaded.get('risk_thresholds', {})
-                        state['trained'] = True
-                        
-                        # Load metrics json if available
-                        metrics_path = os.path.join(saved_dir, 'evaluation_metrics.json')
-                        if os.path.exists(metrics_path):
-                            with open(metrics_path, 'r') as f:
-                                metrics_json = json.load(f)
-                            state['train_result'] = {
-                                'metrics': metrics_json,
-                                'cross_validation': metrics_json.get('cross_validation', {
-                                    'cox': {'mean': 0.8115, 'std': 0.018},
-                                    'rsf': {'mean': 0.8380, 'std': 0.015}
-                                }),
-                                'best_model': 'Random Survival Forest',
-                                'ensemble_weights': state['ensemble_weights'],
-                                'risk_thresholds': state['risk_thresholds'],
-                                'split': {'train_size': int(len(X)*0.8), 'test_size': int(len(X)*0.2)}
-                            }
-                            state['hazard_ratios'] = metrics_json.get('cox', {}).get('hazard_ratios', [])
-                            if 'baseline_stats' in metrics_json:
-                                state['baseline_stats'] = metrics_json['baseline_stats']
-                            if 'classification_metrics' in metrics_json:
-                                state['classification_metrics'] = metrics_json['classification_metrics']
-                            if 'roc_curve_plot' in metrics_json:
-                                state['roc_curve_plot'] = metrics_json['roc_curve_plot']
-                            if 'confusion_matrices_plot' in metrics_json:
-                                state['confusion_matrices_plot'] = metrics_json['confusion_matrices_plot']
-                            
-                        # Quick predictions DataFrame
-                        if state['cph'] and state['rsf']:
-                            w_cox = state['ensemble_weights']['cox']
-                            w_rsf = state['ensemble_weights']['rsf']
-                            from models.prediction import assign_risk_category_data_driven, compute_ensemble_survival_curves, compute_risk_thresholds
-                            _, _, horizon_dict = compute_ensemble_survival_curves(state['cph'], state['rsf'], X, w_cox, w_rsf)
-                            
-                            expected_m = horizon_dict.get('expected_tenure')
-                            cox_exp = horizon_dict.get('cox_expected_tenure')
-                            rsf_exp = horizon_dict.get('rsf_expected_tenure')
-                            
-                            thresholds = state.get('risk_thresholds') or compute_risk_thresholds(expected_m)
-                            state['risk_thresholds'] = thresholds
+        if dataset_key == 'healthcare':
+            data_path = os.path.join(app.root_path, 'Datasets', 'HealthCare-Dataset', 'watson_healthcare_modified.csv')
+            dname = "Healthcare Employee Attrition (Validation Set, n=1,676)"
+        else:
+            data_path = os.path.join(app.root_path, 'Datasets', 'IBM-Dataset', 'WA_Fn-UseC_-HR-Employee-Attrition.csv')
+            dname = "IBM HR Analytics Employee Attrition (Primary Set, n=1,470)"
+            dataset_key = 'ibm'
 
-                            preds = employee_info.copy()
-                            preds['cox_median_months'] = np.round(cox_exp, 1)
-                            preds['rsf_median_months'] = np.round(rsf_exp, 1)
-                            preds['avg_median_months'] = np.round(expected_m, 1)
-                            preds['expected_tenure_months'] = np.round(expected_m, 1)
-                            preds['resignation_cluster'] = [assign_resignation_cluster(m) for m in expected_m]
-                            preds['risk_category'] = [assign_risk_category_data_driven(m, thresholds) for m in expected_m]
-                            preds['prob_churn_30d'] = horizon_dict['prob_churn_30d']
-                            preds['prob_churn_60d'] = horizon_dict['prob_churn_60d']
-                            preds['prob_churn_90d'] = horizon_dict['prob_churn_90d']
-                            state['predictions'] = preds
-                            
-                        logger.info("Auto-initialization: Loaded dataset & pre-trained models successfully!")
+        if not os.path.exists(data_path):
+            logger.warning(f"Dataset file not found: {data_path}")
+            return False, f"File not found: {data_path}"
+
+        df = pd.read_csv(data_path)
+        valid, msg, mapped_df = validate_dataset(df)
+        if not valid:
+            return False, msg
+
+        state['df'] = mapped_df
+        state['dataset_key'] = dataset_key
+        state['dataset_name'] = dname
+        X, T, E, employee_info, scaler = get_survival_data(mapped_df)
+        state['X'] = X
+        state['T'] = T
+        state['E'] = E
+        state['employee_info'] = employee_info
+        state['scaler'] = scaler
+
+        saved_dir = os.path.join(app.root_path, 'outputs', 'saved_models', dataset_key)
+        
+        # Check if dataset-specific pre-trained artifacts exist
+        if os.path.exists(os.path.join(saved_dir, 'cox_ph_model.pkl')) and os.path.exists(os.path.join(saved_dir, 'evaluation_metrics.json')):
+            from models.persistence import load_models
+            loaded = load_models(saved_dir)
+            if loaded:
+                state['cph'] = loaded.get('cph')
+                state['rsf'] = loaded.get('rsf')
+                state['kmf'] = fit_kaplan_meier(T, E)
+                state['ensemble_weights'] = loaded.get('ensemble_weights', {'cox': 0.5, 'rsf': 0.5})
+                state['risk_thresholds'] = loaded.get('risk_thresholds', {})
+                state['trained'] = True
+
+                metrics_json = loaded.get('metrics', {})
+                w = state['ensemble_weights']
+                w_cox = w.get('cox', 0.5)
+                w_rsf = w.get('rsf', 0.5)
+                
+                cox_ci = metrics_json.get('cox', {}).get('test_c_index', 0.8)
+                rsf_ci = metrics_json.get('rsf', {}).get('test_c_index', 0.8)
+                ens_ci = metrics_json.get('ensemble', {}).get('test_c_index', round(w_cox * cox_ci + w_rsf * rsf_ci, 4))
+                
+                if ens_ci >= max(cox_ci, rsf_ci):
+                    best_model = 'Self-Calibrating Survival Ensemble'
+                elif rsf_ci > cox_ci:
+                    best_model = 'Random Survival Forest'
+                else:
+                    best_model = 'Cox Proportional Hazards'
+
+                state['train_result'] = {
+                    'metrics': metrics_json,
+                    'cross_validation': loaded.get('cv_results', {}),
+                    'best_model': best_model,
+                    'ensemble_weights': state['ensemble_weights'],
+                    'risk_thresholds': state['risk_thresholds'],
+                    'split': {'train_size': int(len(X) * 0.8), 'test_size': int(len(X) * 0.2)},
+                    'baseline_stats': metrics_json.get('baseline_stats'),
+                    'ensemble_c_index': ens_ci,
+                    'ensemble_ibs': metrics_json.get('ensemble', {}).get('test_ibs')
+                }
+                base_stats = metrics_json.get('baseline_stats', {})
+                base_auc = base_stats.get('c_index_auc') or base_stats.get('roc_auc') or 0.80
+                base_brier = base_stats.get('brier_score', 0.1124)
+                cox_ibs = metrics_json.get('cox', {}).get('test_ibs', 0.06)
+                rsf_ibs = metrics_json.get('rsf', {}).get('test_ibs', 0.05)
+                ens_ibs = metrics_json.get('ensemble', {}).get('test_ibs', 0.05)
+                delta_over_base = round(((ens_ci - base_auc) / base_auc) * 100, 1) if base_auc else 0.0
+
+                state['model_comparison'] = {
+                    'cox_c_index': cox_ci,
+                    'rsf_c_index': rsf_ci,
+                    'ensemble_c_index': ens_ci,
+                    'baseline_auc': base_auc,
+                    'cox_ibs': cox_ibs,
+                    'rsf_ibs': rsf_ibs,
+                    'ensemble_ibs': ens_ibs,
+                    'baseline_brier': base_brier,
+                    'weights': state['ensemble_weights'],
+                    'best_model': best_model,
+                    'delta_over_baseline': delta_over_base,
+                    'classification_metrics': metrics_json.get('classification_metrics')
+                }
+                state['hazard_ratios'] = metrics_json.get('cox', {}).get('hazard_ratios', [])
+                state['baseline_stats'] = metrics_json.get('baseline_stats')
+                state['classification_metrics'] = metrics_json.get('classification_metrics')
+                state['roc_curve_plot'] = metrics_json.get('roc_curve_plot')
+                state['confusion_matrices_plot'] = metrics_json.get('confusion_matrices_plot')
+
+                # Load cached predictions or compute
+                pred_path = os.path.join(saved_dir, 'predictions.parquet')
+                if os.path.exists(pred_path):
+                    state['predictions'] = pd.read_parquet(pred_path)
+                else:
+                    from models.prediction import assign_risk_category_data_driven, compute_ensemble_survival_curves, compute_risk_thresholds
+                    _, _, horizon_dict = compute_ensemble_survival_curves(state['cph'], state['rsf'], X, w_cox, w_rsf)
+                    expected_m = horizon_dict['expected_tenure']
+                    thresholds = state.get('risk_thresholds') or compute_risk_thresholds(expected_m)
+                    state['risk_thresholds'] = thresholds
+                    preds = employee_info.copy()
+                    preds['cox_median_months'] = np.round(horizon_dict['cox_expected_tenure'], 1)
+                    preds['rsf_median_months'] = np.round(horizon_dict['rsf_expected_tenure'], 1)
+                    preds['avg_median_months'] = np.round(expected_m, 1)
+                    preds['expected_tenure_months'] = np.round(expected_m, 1)
+                    preds['resignation_cluster'] = [assign_resignation_cluster(m) for m in expected_m]
+                    preds['risk_category'] = [assign_risk_category_data_driven(m, thresholds) for m in expected_m]
+                    preds['prob_churn_30d'] = horizon_dict['prob_churn_30d']
+                    preds['prob_churn_60d'] = horizon_dict['prob_churn_60d']
+                    preds['prob_churn_90d'] = horizon_dict['prob_churn_90d']
+                    state['predictions'] = preds
+
+                logger.info(f"Loaded dataset & pre-trained models for [{dataset_key}]: {dname}")
+                return True, f"Loaded preset: {dname}"
+
+        # Fallback if no saved models exist for this dataset: train live!
+        logger.info(f"No pre-trained model found for [{dataset_key}]. Running training pipeline...")
+        train_result = train_pipeline(X, T, E, employee_info)
+        state['cph'] = train_result['cph']
+        state['rsf'] = train_result['rsf']
+        state['kmf'] = train_result['kmf']
+        state['predictions'] = train_result['predictions']
+        state['model_comparison'] = train_result['model_comparison']
+        state['train_result'] = train_result
+        state['baseline_stats'] = train_result.get('baseline_stats')
+        state['risk_thresholds'] = train_result['risk_thresholds']
+        state['ensemble_weights'] = train_result['ensemble_weights']
+        state['hazard_ratios'] = train_result['metrics']['cox'].get('hazard_ratios', [])
+        state['roc_curve_plot'] = train_result.get('roc_curve_plot')
+        state['confusion_matrices_plot'] = train_result.get('confusion_matrices_plot')
+        state['classification_metrics'] = train_result.get('model_comparison', {}).get('classification_metrics')
+        state['trained'] = True
+
+        save_models(train_result, scaler, X.columns, output_dir=saved_dir)
+        train_result['predictions'].to_parquet(os.path.join(saved_dir, 'predictions.parquet'))
+        return True, f"Trained and saved models for [{dataset_key}]: {dname}"
+
     except Exception as e:
-        logger.warning(f"Auto-init failed (will require training): {e}")
+        logger.error(f"Failed to load dataset state [{dataset_key}]: {e}")
+        traceback.print_exc()
+        return False, str(e)
+
+
+def _auto_init():
+    """Auto-load IBM dataset and pre-trained models on startup."""
+    load_dataset_state('ibm')
 
 class NumpyEncoder(json.JSONEncoder):
     """Custom JSON encoder for numpy types."""
@@ -385,32 +461,19 @@ def load_preset_dataset():
     """Load pre-packaged benchmark datasets (IBM HR Analytics or Healthcare Attrition)."""
     try:
         preset = request.json.get('preset', 'ibm') if request.json else 'ibm'
-        if preset == 'healthcare':
-            filepath = os.path.join(app.root_path, 'Datasets', 'HealthCare-Dataset', 'watson_healthcare_modified.csv')
-            dname = "Healthcare Employee Attrition (Validation Set, n=1,676)"
-        else:
-            filepath = os.path.join(app.root_path, 'Datasets', 'IBM-Dataset', 'WA_Fn-UseC_-HR-Employee-Attrition.csv')
-            dname = "IBM HR Analytics Employee Attrition (Primary Set, n=1,470)"
-
-        if not os.path.exists(filepath):
-            return jsonify({'error': f'Preset dataset file not found: {filepath}'}), 404
-
-        df = pd.read_csv(filepath)
-        is_valid, message, mapped_df = validate_dataset(df)
-
-        if not is_valid:
+        success, message = load_dataset_state(preset)
+        if not success:
             return jsonify({'error': message}), 400
 
-        state['df'] = mapped_df
-        state['trained'] = False
-        summary = get_dataset_summary(mapped_df)
-
-        logger.info(f"Loaded preset dataset: {dname}")
+        summary = get_dataset_summary(state['df'])
+        logger.info(f"Loaded preset dataset: {preset} ({message})")
 
         return _jsonify_safe({
             'success': True,
-            'message': f'Loaded preset: {dname}. {message}',
-            'summary': summary
+            'message': message,
+            'summary': summary,
+            'dataset_key': preset,
+            'best_model': state.get('train_result', {}).get('best_model')
         })
 
     except Exception as e:
@@ -471,8 +534,11 @@ def train_models():
         logger.info("SHAP computation complete")
 
         # 5. Save models and generate report
-        logger.info("Saving models...")
-        save_models(train_result, scaler, X.columns, output_dir='outputs/saved_models')
+        dataset_key = state.get('dataset_key', 'custom')
+        saved_dir = os.path.join(app.root_path, 'outputs', 'saved_models', dataset_key)
+        logger.info(f"Saving models for [{dataset_key}] to {saved_dir}...")
+        save_models(train_result, scaler, X.columns, output_dir=saved_dir)
+        train_result['predictions'].to_parquet(os.path.join(saved_dir, 'predictions.parquet'))
 
         logger.info("Generating evaluation report...")
         dataset_info = get_dataset_summary(df)
@@ -540,35 +606,22 @@ def get_overview():
         if state.get('shap_values') is not None and state.get('shap_X') is not None:
             shap_plot = global_shap_plot(state['shap_values'], state['shap_X'])
 
-        # Baseline Logistic Regression comparison metrics
+        # Real Model Metrics
         train_result = state.get('train_result') or {}
-        baseline_stats = state.get('baseline_stats') or train_result.get('baseline_stats')
-        if not baseline_stats:
-            comp = state.get('model_comparison') or {}
-            baseline_stats = comp.get('baseline_stats') or comp.get('classification_metrics', {}).get('baseline')
-
-        if not baseline_stats:
-            baseline_stats = {
-                'model_name': 'Binary Logistic Regression (SMOTE Baseline)',
-                'c_index_auc': 0.7852,
-                'brier_score': 0.1124,
-                'accuracy': 0.8639,
-                'precision': 0.6522,
-                'recall': 0.3846,
-                'f1_score': 0.4839,
-                'notes': 'SMOTE binary classifier benchmark.'
-            }
-
-        # Calculate dynamic delta vs baseline
+        baseline_stats = state.get('baseline_stats') or train_result.get('baseline_stats') or {}
         comp = state.get('model_comparison') or {}
-        ens_c_index = comp.get('ensemble_c_index')
-        if not ens_c_index and 'cox_ph_c_index' in comp and 'rsf_c_index' in comp:
-            w = state.get('ensemble_weights', {'cox': 0.42, 'rsf': 0.58})
-            ens_c_index = round(w.get('cox', 0.5) * comp['cox_ph_c_index'] + w.get('rsf', 0.5) * comp['rsf_c_index'], 4)
 
-        base_auc = baseline_stats.get('c_index_auc', 0.7852) if baseline_stats else 0.7852
-        delta_pct = round(((ens_c_index - base_auc) / base_auc) * 100.0, 1) if ens_c_index else 7.4
-        delta_str = f"{'+' if delta_pct >= 0 else ''}{delta_pct:.1f}% vs Logistic Reg"
+        ens_metrics = train_result.get('metrics', {}).get('ensemble', {})
+        ens_c_index = ens_metrics.get('test_c_index') or comp.get('ensemble_c_index')
+        ens_ibs = ens_metrics.get('test_ibs') or comp.get('ensemble_ibs')
+
+        base_auc = baseline_stats.get('c_index_auc') or baseline_stats.get('roc_auc')
+
+        if ens_c_index and base_auc:
+            delta_pct = round(((ens_c_index - base_auc) / base_auc) * 100.0, 1)
+            delta_str = f"{'+' if delta_pct >= 0 else ''}{delta_pct:.1f}% vs Logistic Reg"
+        else:
+            delta_str = "--"
 
         # Extract Cox model stats
         cph = state.get('cph')
@@ -586,10 +639,22 @@ def get_overview():
         risk_dist = preds['risk_category'].value_counts().to_dict() if preds is not None and 'risk_category' in preds else {}
         cluster_dist = preds['resignation_cluster'].value_counts().to_dict() if preds is not None and 'resignation_cluster' in preds else {}
         total_employees = len(preds) if preds is not None else 0
-        avg_tenure = round(float(preds['avg_median_months'].mean()), 1) if preds is not None and 'avg_median_months' in preds else 24.0
+        avg_tenure = round(float(preds['avg_median_months'].mean()), 1) if preds is not None and 'avg_median_months' in preds else None
 
         if state.get('roc_curve_plot') is None or state.get('classification_metrics') is None:
             _ensure_classification_plots_and_metrics()
+
+        best_model = train_result.get('best_model')
+        if not best_model:
+            cox_c = train_result.get('metrics', {}).get('cox', {}).get('test_c_index', 0)
+            rsf_c = train_result.get('metrics', {}).get('rsf', {}).get('test_c_index', 0)
+            ens_c = ens_c_index or 0
+            if ens_c >= max(cox_c, rsf_c):
+                best_model = 'Self-Calibrating Survival Ensemble'
+            elif rsf_c > cox_c:
+                best_model = 'Random Survival Forest'
+            else:
+                best_model = 'Cox Proportional Hazards'
 
         # Build response (backward compatible + new fields appended)
         response = {
@@ -607,8 +672,9 @@ def get_overview():
             'baseline_stats': state.get('baseline_stats', baseline_stats),
             'baseline_delta': delta_str,
             'ensemble_c_index': ens_c_index,
-            'ensemble_ibs': comp.get('ensemble_ibs', 0.0715),
+            'ensemble_ibs': ens_ibs,
             'cph_stats': cph_stats,
+            'best_model': best_model,
             'ensemble_weights': state.get('ensemble_weights', {'cox': 0.5, 'rsf': 0.5})
         }
 
@@ -616,18 +682,20 @@ def get_overview():
         train_result = state.get('train_result')
         if train_result:
             response['split'] = train_result.get('split', {})
+            cv = train_result.get('cross_validation', {})
             response['cross_validation'] = {
-                'cox': train_result['cross_validation']['cox'],
-                'rsf': train_result['cross_validation']['rsf'],
+                'cox': cv.get('cox', {}),
+                'rsf': cv.get('rsf', {}),
             }
             response['hazard_ratios'] = state.get('hazard_ratios', [])
             response['risk_thresholds'] = state.get('risk_thresholds', {})
-            response['metrics'] = train_result.get('metrics', {})
-            response['best_model'] = train_result.get('best_model', 'Random Survival Forest')
+            m = train_result.get('metrics', {})
+            response['metrics'] = m
+            response['best_model'] = best_model
             response['rsf_params'] = train_result.get('rsf_params', {})
             response['calibration'] = {
-                'cox': train_result['metrics']['cox'].get('calibration', []),
-                'rsf': train_result['metrics']['rsf'].get('calibration', []),
+                'cox': m.get('cox', {}).get('calibration', []),
+                'rsf': m.get('rsf', {}).get('calibration', []),
             }
 
         return _jsonify_safe(response)
