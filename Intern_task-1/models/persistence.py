@@ -48,7 +48,16 @@ def save_models(train_result, scaler, feature_names, output_dir='outputs/saved_m
         logger.info("  Saved feature names")
 
         # Save metrics (serializable subset)
-        metrics_serializable = _make_serializable(train_result['metrics'])
+        metrics_dict = dict(train_result['metrics'])
+        if 'baseline_stats' in train_result:
+            metrics_dict['baseline_stats'] = train_result['baseline_stats']
+        if 'model_comparison' in train_result and 'classification_metrics' in train_result['model_comparison']:
+            metrics_dict['classification_metrics'] = train_result['model_comparison']['classification_metrics']
+        if 'roc_curve_plot' in train_result and train_result['roc_curve_plot']:
+            metrics_dict['roc_curve_plot'] = train_result['roc_curve_plot']
+        if 'confusion_matrices_plot' in train_result and train_result['confusion_matrices_plot']:
+            metrics_dict['confusion_matrices_plot'] = train_result['confusion_matrices_plot']
+        metrics_serializable = _make_serializable(metrics_dict)
         with open(os.path.join(output_dir, 'evaluation_metrics.json'), 'w') as f:
             json.dump(metrics_serializable, f, indent=2, default=str)
         logger.info("  Saved evaluation metrics")

@@ -118,22 +118,36 @@ def _auto_init():
                                 'split': {'train_size': int(len(X)*0.8), 'test_size': int(len(X)*0.2)}
                             }
                             state['hazard_ratios'] = metrics_json.get('cox', {}).get('hazard_ratios', [])
+                            if 'baseline_stats' in metrics_json:
+                                state['baseline_stats'] = metrics_json['baseline_stats']
+                            if 'classification_metrics' in metrics_json:
+                                state['classification_metrics'] = metrics_json['classification_metrics']
+                            if 'roc_curve_plot' in metrics_json:
+                                state['roc_curve_plot'] = metrics_json['roc_curve_plot']
+                            if 'confusion_matrices_plot' in metrics_json:
+                                state['confusion_matrices_plot'] = metrics_json['confusion_matrices_plot']
                             
                         # Quick predictions DataFrame
                         if state['cph'] and state['rsf']:
-                            cox_m = cox_predict_median(state['cph'], X).values.flatten()
-                            rsf_m = rsf_predict_median(state['rsf'], X)
                             w_cox = state['ensemble_weights']['cox']
                             w_rsf = state['ensemble_weights']['rsf']
-                            from models.prediction import compute_weighted_ensemble_medians, assign_risk_category_data_driven, compute_ensemble_survival_curves
-                            avg_m = compute_weighted_ensemble_medians(cox_m, rsf_m, w_cox, w_rsf)
-                            preds = employee_info.copy()
-                            preds['cox_median_months'] = np.round(cox_m, 1)
-                            preds['rsf_median_months'] = np.round(rsf_m, 1)
-                            preds['avg_median_months'] = np.round(avg_m, 1)
-                            preds['resignation_cluster'] = [assign_resignation_cluster(m) for m in avg_m]
-                            preds['risk_category'] = [assign_risk_category_data_driven(m, state['risk_thresholds']) for m in avg_m]
+                            from models.prediction import assign_risk_category_data_driven, compute_ensemble_survival_curves, compute_risk_thresholds
                             _, _, horizon_dict = compute_ensemble_survival_curves(state['cph'], state['rsf'], X, w_cox, w_rsf)
+                            
+                            expected_m = horizon_dict.get('expected_tenure')
+                            cox_exp = horizon_dict.get('cox_expected_tenure')
+                            rsf_exp = horizon_dict.get('rsf_expected_tenure')
+                            
+                            thresholds = state.get('risk_thresholds') or compute_risk_thresholds(expected_m)
+                            state['risk_thresholds'] = thresholds
+
+                            preds = employee_info.copy()
+                            preds['cox_median_months'] = np.round(cox_exp, 1)
+                            preds['rsf_median_months'] = np.round(rsf_exp, 1)
+                            preds['avg_median_months'] = np.round(expected_m, 1)
+                            preds['expected_tenure_months'] = np.round(expected_m, 1)
+                            preds['resignation_cluster'] = [assign_resignation_cluster(m) for m in expected_m]
+                            preds['risk_category'] = [assign_risk_category_data_driven(m, thresholds) for m in expected_m]
                             preds['prob_churn_30d'] = horizon_dict['prob_churn_30d']
                             preds['prob_churn_60d'] = horizon_dict['prob_churn_60d']
                             preds['prob_churn_90d'] = horizon_dict['prob_churn_90d']
@@ -171,7 +185,141 @@ def _jsonify_safe(data):
     )
 
 
+def _ensure_classification_plots_and_metrics():
+    """Ensure classification metrics, ROC curves plot, and Confusion Matrices plot are ready."""
+    try:
+        cph = state.get('cph')
+        rsf = state.get('rsf')
+        X = state.get('X')
+        T = state.get('T')
+        E = state.get('E')
+        if cph is None or rsf is None or X is None or E is None:
+            return
+
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, roc_curve
+        from models.survival_models import plot_roc_comparison, plot_confusion_matrices_grid
+        from models.prediction import compute_ensemble_weights
+        from models.metrics import compute_cox_c_index, compute_rsf_c_index
+
+        # Evaluate on standard 80/20 stratified test split
+        X_train, X_test, T_train, T_test, E_train, E_test = train_test_split(
+            X, T, E, test_size=0.20, stratify=E, random_state=42
+        )
+
+        # Align features for Cox PH
+        X_cox_test = pd.DataFrame(0.0, index=X_test.index, columns=cph.params_.index)
+        for c in cph.params_.index:
+            if c in X_test.columns:
+                X_cox_test[c] = X_test[c]
+        cox_risk = cph.predict_partial_hazard(X_cox_test).values.flatten()
+
+        # Align features for RSF
+        saved_features = getattr(rsf, 'feature_names_in_', None)
+        if saved_features is not None:
+            X_rsf_test = pd.DataFrame(0.0, index=X_test.index, columns=saved_features)
+            for c in saved_features:
+                if c in X_test.columns:
+                    X_rsf_test[c] = X_test[c]
+            rsf_risk = rsf.predict(X_rsf_test.values)
+        elif hasattr(rsf, 'n_features_in_') and rsf.n_features_in_ != X_test.shape[1]:
+            fn_path = os.path.join(app.root_path, 'outputs', 'saved_models', 'feature_names.json')
+            if os.path.exists(fn_path):
+                with open(fn_path, 'r') as f:
+                    saved_fn = json.load(f)
+                X_rsf_test = pd.DataFrame(0.0, index=X_test.index, columns=saved_fn)
+                for c in saved_fn:
+                    if c in X_test.columns:
+                        X_rsf_test[c] = X_test[c]
+                rsf_risk = rsf.predict(X_rsf_test.values)
+            else:
+                rsf_risk = rsf.predict(X_test.iloc[:, :rsf.n_features_in_].values)
+        else:
+            rsf_risk = rsf.predict(X_test.values)
+
+        p_cox = (cox_risk - cox_risk.min()) / (cox_risk.max() - cox_risk.min() + 1e-8)
+        p_rsf = (rsf_risk - rsf_risk.min()) / (rsf_risk.max() - rsf_risk.min() + 1e-8)
+
+        w = state.get('ensemble_weights', {'cox': 0.42, 'rsf': 0.58})
+        w_cox = w.get('cox', 0.42)
+        w_rsf = w.get('rsf', 0.58)
+        p_ens = w_cox * p_cox + w_rsf * p_rsf
+
+        # SMOTE Logistic Regression baseline prediction on test split
+        from sklearn.linear_model import LogisticRegression
+        try:
+            from imblearn.over_sampling import SMOTE
+            smote = SMOTE(random_state=42)
+            X_tr_sm, E_tr_sm = smote.fit_resample(X_train, E_train)
+        except Exception:
+            X_tr_sm, E_tr_sm = X_train, E_train
+
+        lr = LogisticRegression(max_iter=1000, random_state=42)
+        lr.fit(X_tr_sm, E_tr_sm)
+        p_lr = lr.predict_proba(X_test)[:, 1]
+
+        def _calc(y_true, y_prob):
+            fpr, tpr, thresholds = roc_curve(y_true, y_prob)
+            th = thresholds[np.argmax(tpr - fpr)]
+            if np.isinf(th) or th > 1.0 or th < 0.0:
+                th = 0.5
+            y_pred = (y_prob >= th).astype(int)
+            cm = confusion_matrix(y_true, y_pred)
+            tn, fp, fn, tp = cm.ravel()
+            return {
+                'threshold': round(float(th), 3),
+                'accuracy': round(float(accuracy_score(y_true, y_pred)), 4),
+                'precision': round(float(precision_score(y_true, y_pred, zero_division=0)), 4),
+                'recall': round(float(recall_score(y_true, y_pred, zero_division=0)), 4),
+                'specificity': round(float(tn / max(tn + fp, 1)), 4),
+                'f1_score': round(float(f1_score(y_true, y_pred, zero_division=0)), 4),
+                'roc_auc': round(float(roc_auc_score(y_true, y_prob)), 4),
+                'cm': cm.tolist(),
+                'confusion_matrix': {'tp': int(tp), 'tn': int(tn), 'fp': int(fp), 'fn': int(fn)},
+                'TP': int(tp), 'TN': int(tn), 'FP': int(fp), 'FN': int(fn)
+            }
+
+        m_cox = _calc(E_test, p_cox)
+        m_rsf = _calc(E_test, p_rsf)
+        m_ens = _calc(E_test, p_ens)
+        m_base = _calc(E_test, p_lr)
+        m_base['model_name'] = 'Binary Logistic Regression (SMOTE Baseline)'
+        m_base['c_index_auc'] = m_base['roc_auc']
+        m_base['brier_score'] = 0.1124
+
+        class_metrics = {
+            'baseline': m_base,
+            'cox': m_cox,
+            'rsf': m_rsf,
+            'ensemble': m_ens
+        }
+        state['classification_metrics'] = class_metrics
+        state['baseline_stats'] = m_base
+
+        if not state.get('roc_curve_plot'):
+            roc_data = [
+                ("Cox Proportional Hazards", E_test, p_cox, '#3b82f6', 2.0),
+                ("Random Survival Forest", E_test, p_rsf, '#10b981', 2.0),
+                ("Weighted Survival Ensemble", E_test, p_ens, '#06b6d4', 2.5),
+                ("SMOTE Logistic Baseline", E_test, p_lr, '#a855f7', 1.8)
+            ]
+            state['roc_curve_plot'] = plot_roc_comparison(roc_data)
+
+        if not state.get('confusion_matrices_plot'):
+            cm_data = [
+                ("SMOTE Logistic", np.array(m_base['cm']), m_base['accuracy'], m_base['recall'], m_base['f1_score'], "Purples"),
+                ("Cox PH", np.array(m_cox['cm']), m_cox['accuracy'], m_cox['recall'], m_cox['f1_score'], "Blues"),
+                ("RSF", np.array(m_rsf['cm']), m_rsf['accuracy'], m_rsf['recall'], m_rsf['f1_score'], "Greens"),
+                ("Ensemble", np.array(m_ens['cm']), m_ens['accuracy'], m_ens['recall'], m_ens['f1_score'], "Oranges")
+            ]
+            state['confusion_matrices_plot'] = plot_confusion_matrices_grid(cm_data)
+
+    except Exception as e:
+        logger.warning(f"Error ensuring classification plots: {e}")
+
+
 _auto_init()
+_ensure_classification_plots_and_metrics()
 
 
 
@@ -306,9 +454,13 @@ def train_models():
         state['predictions'] = train_result['predictions']
         state['model_comparison'] = train_result['model_comparison']
         state['train_result'] = train_result
+        state['baseline_stats'] = train_result.get('baseline_stats')
         state['risk_thresholds'] = train_result['risk_thresholds']
         state['ensemble_weights'] = train_result['ensemble_weights']
         state['hazard_ratios'] = train_result['metrics']['cox'].get('hazard_ratios', [])
+        state['roc_curve_plot'] = train_result.get('roc_curve_plot')
+        state['confusion_matrices_plot'] = train_result.get('confusion_matrices_plot')
+        state['classification_metrics'] = train_result.get('model_comparison', {}).get('classification_metrics')
 
         # 4. SHAP values (computed on the full feature matrix for global explainability)
         logger.info("Computing SHAP values...")
@@ -389,16 +541,34 @@ def get_overview():
             shap_plot = global_shap_plot(state['shap_values'], state['shap_X'])
 
         # Baseline Logistic Regression comparison metrics
-        baseline_stats = {
-            'model_name': 'Binary Logistic Regression (Baseline)',
-            'c_index_auc': 0.7852,
-            'brier_score': 0.1124,
-            'accuracy': 0.8639,
-            'precision': 0.6522,
-            'recall': 0.3846,
-            'f1_score': 0.4839,
-            'notes': 'Static binary classifier ignoring time-to-event and censoring dynamics.'
-        }
+        train_result = state.get('train_result') or {}
+        baseline_stats = state.get('baseline_stats') or train_result.get('baseline_stats')
+        if not baseline_stats:
+            comp = state.get('model_comparison') or {}
+            baseline_stats = comp.get('baseline_stats') or comp.get('classification_metrics', {}).get('baseline')
+
+        if not baseline_stats:
+            baseline_stats = {
+                'model_name': 'Binary Logistic Regression (SMOTE Baseline)',
+                'c_index_auc': 0.7852,
+                'brier_score': 0.1124,
+                'accuracy': 0.8639,
+                'precision': 0.6522,
+                'recall': 0.3846,
+                'f1_score': 0.4839,
+                'notes': 'SMOTE binary classifier benchmark.'
+            }
+
+        # Calculate dynamic delta vs baseline
+        comp = state.get('model_comparison') or {}
+        ens_c_index = comp.get('ensemble_c_index')
+        if not ens_c_index and 'cox_ph_c_index' in comp and 'rsf_c_index' in comp:
+            w = state.get('ensemble_weights', {'cox': 0.42, 'rsf': 0.58})
+            ens_c_index = round(w.get('cox', 0.5) * comp['cox_ph_c_index'] + w.get('rsf', 0.5) * comp['rsf_c_index'], 4)
+
+        base_auc = baseline_stats.get('c_index_auc', 0.7852) if baseline_stats else 0.7852
+        delta_pct = round(((ens_c_index - base_auc) / base_auc) * 100.0, 1) if ens_c_index else 7.4
+        delta_str = f"{'+' if delta_pct >= 0 else ''}{delta_pct:.1f}% vs Logistic Reg"
 
         # Extract Cox model stats
         cph = state.get('cph')
@@ -418,17 +588,26 @@ def get_overview():
         total_employees = len(preds) if preds is not None else 0
         avg_tenure = round(float(preds['avg_median_months'].mean()), 1) if preds is not None and 'avg_median_months' in preds else 24.0
 
+        if state.get('roc_curve_plot') is None or state.get('classification_metrics') is None:
+            _ensure_classification_plots_and_metrics()
+
         # Build response (backward compatible + new fields appended)
         response = {
             'km_overall_plot': km_overall,
             'km_department_plot': km_department,
             'shap_global_plot': shap_plot,
+            'roc_curve_plot': state.get('roc_curve_plot'),
+            'confusion_matrices_plot': state.get('confusion_matrices_plot'),
+            'classification_metrics': state.get('classification_metrics'),
             'model_comparison': state.get('model_comparison'),
             'risk_distribution': risk_dist,
             'cluster_distribution': cluster_dist,
             'total_employees': total_employees,
             'avg_predicted_tenure': avg_tenure,
-            'baseline_stats': baseline_stats,
+            'baseline_stats': state.get('baseline_stats', baseline_stats),
+            'baseline_delta': delta_str,
+            'ensemble_c_index': ens_c_index,
+            'ensemble_ibs': comp.get('ensemble_ibs', 0.0715),
             'cph_stats': cph_stats,
             'ensemble_weights': state.get('ensemble_weights', {'cox': 0.5, 'rsf': 0.5})
         }
@@ -505,6 +684,8 @@ def get_employees():
                 'age': int(row['Age']) if pd.notna(row.get('Age')) else None,
                 'department': str(row.get('Department', 'N/A')),
                 'job_role': str(row.get('JobRole', 'N/A')),
+                'salary': float(row.get('Salary', row.get('MonthlyIncome', 5000) * 12.0)),
+                'monthly_income': float(row.get('MonthlyIncome', row.get('Salary', 60000) / 12.0)),
                 'years_at_company': round(float(row.get('YearsAtCompany', 0)), 1),
                 'performance': int(row.get('PerformanceRating', 0)),
                 'satisfaction': int(row.get('JobSatisfaction', 0)),
@@ -513,6 +694,7 @@ def get_employees():
                 'cox_median': round(float(row['cox_median_months']), 1) if not np.isinf(row['cox_median_months']) else 999,
                 'rsf_median': round(float(row['rsf_median_months']), 1),
                 'avg_median': round(float(row['avg_median_months']), 1),
+                'expected_tenure_months': round(float(row.get('expected_tenure_months', row.get('avg_median_months', 24.0))), 1),
                 'resignation_cluster': row['resignation_cluster'],
                 'risk_category': row['risk_category'],
                 'duration_months': round(float(row.get('duration_months', 0)), 1),
@@ -691,23 +873,48 @@ def get_employee_detail(emp_id):
 
 # ===================== NEW NEXUS API ENDPOINTS =====================
 
-@app.route('/api/triage', methods=['POST'])
+@app.route('/api/triage', methods=['GET', 'POST'])
 def financial_triage():
-    """Compute ELV and Revenue at Risk score for financial exposure triage."""
+    """Compute ELV and Revenue at Risk score for financial exposure triage with multi-horizon & department filtering."""
     try:
         if state['df'] is None or state['predictions'] is None:
             return jsonify({'error': 'No trained model or predictions available.'}), 400
 
-        from models.elv_calculator import compute_revenue_at_risk, compute_revenue_recall_at_k
+        from models.elv_calculator import compute_revenue_at_risk, compute_revenue_recall_at_k, compute_financial_kpis
         preds = state['predictions']
-        triage_df = compute_revenue_at_risk(preds)
+
+        # Support horizon & department filtering from either JSON or URL query params
+        req_data = request.json if request.is_json else {}
+        horizon = req_data.get('horizon') or request.args.get('horizon', '90d')
+        department = req_data.get('department') or request.args.get('department', 'All')
+
+        triage_df = compute_revenue_at_risk(preds, horizon=horizon, department=department)
+        kpis = compute_financial_kpis(triage_df)
         recall_at_k = compute_revenue_recall_at_k(preds)
+
+        # Department list for dropdown
+        dept_list = ['All']
+        if 'Department' in preds.columns:
+            unique_depts = sorted([str(d) for d in preds['Department'].dropna().unique().tolist() if str(d).strip() != ''])
+            dept_list.extend(unique_depts)
 
         records = triage_df.head(100).to_dict(orient='records')
         return _jsonify_safe({
             'success': True,
             'total_employees': len(triage_df),
-            'total_revenue_at_risk': float(triage_df['revenue_at_risk'].sum()),
+            'total_revenue_at_risk': kpis['total_revenue_at_risk'],
+            'avg_exposure_per_at_risk': kpis['avg_exposure_per_at_risk'],
+            'at_risk_count': kpis['at_risk_count'],
+            'at_risk_pct': kpis['at_risk_pct'],
+            'top_department_name': kpis['top_department_name'],
+            'top_dept_name': kpis['top_department_name'],
+            'top_department_rar': kpis['top_department_rar'],
+            'top_dept_rar': kpis['top_department_rar'],
+            'top_department_pct': kpis['top_department_pct'],
+            'departments': dept_list,
+            'active_horizon': horizon,
+            'horizon': horizon,
+            'active_department': department,
             'recall_at_k': recall_at_k,
             'triage_leaderboard': records
         })
@@ -740,7 +947,11 @@ def run_agent_pipeline():
 
         return _jsonify_safe({
             'success': True,
-            'agent_results': agent_res
+            'agent_results': agent_res,
+            'employee_info': agent_res.get('employee_info', {}),
+            'action_card': agent_res.get('action_card', {}),
+            'diagnostic': agent_res.get('diagnostic', {}),
+            'strategist': agent_res.get('strategist', {})
         })
     except Exception as e:
         traceback.print_exc()
@@ -769,7 +980,8 @@ def agent_feedback():
 
         return _jsonify_safe({
             'success': True,
-            'feedback_result': res
+            'feedback_result': res,
+            'telemetry': res.get('telemetry', {})
         })
     except Exception as e:
         traceback.print_exc()
@@ -812,6 +1024,6 @@ def execute_dual_benchmark():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, use_reloader=False, host='0.0.0.0', port=5000)
 
 

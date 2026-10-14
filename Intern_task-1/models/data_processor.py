@@ -200,6 +200,9 @@ def auto_map_columns(df):
             if col in column_map:
                 continue
             norm_col = _normalize(col)
+            # Avoid false positive partial matches for Salary
+            if internal_name == 'Salary' and any(bad in norm_col for bad in ['hike', 'percent', 'pct', 'rate', 'hourly', 'daily']):
+                continue
             for alias in aliases:
                 norm_alias = _normalize(alias)
                 # Ensure the alias is reasonably long to avoid false positives
@@ -370,10 +373,25 @@ def engineer_features(df):
     else:
         df['DaysSinceLastPromotion'] = (df['duration_months'] * 15).clip(lower=0)
 
+    # ---- Derive MonthlyIncome <-> Salary relationship from actual data ----
+    has_monthly = 'MonthlyIncome' in df.columns
+    has_salary = 'Salary' in df.columns
+    if has_monthly:
+        df['MonthlyIncome'] = pd.to_numeric(df['MonthlyIncome'], errors='coerce')
+    if has_salary:
+        df['Salary'] = pd.to_numeric(df['Salary'], errors='coerce')
+
+    if has_monthly and (not has_salary or (df['Salary'].median() < 100 and df['MonthlyIncome'].median() > 1000)):
+        # Annual salary from monthly income
+        df['Salary'] = df['MonthlyIncome'] * 12.0
+    elif has_salary and (not has_monthly or (df['MonthlyIncome'].median() < 100 and df['Salary'].median() > 1000)):
+        # Monthly income from salary
+        df['MonthlyIncome'] = np.where(df['Salary'] > 20000, df['Salary'] / 12.0, df['Salary'])
+
     # ---- Fill / create missing numeric columns with defaults ----
     numeric_defaults = {
         'Age': 30,
-        'Salary': 50000,
+        'Salary': 5000,
         'YearsAtCompany': 3,
         'PerformanceRating': 3,
         'PromotionCount': 0,
@@ -381,7 +399,7 @@ def engineer_features(df):
         'DistanceFromHome': 10,
         'TrainingHours': 20,
         'JobSatisfaction': 3,
-        'MonthlyIncome': 4000,
+        'MonthlyIncome': 5000,
         'JobLevel': 2,
         'ManagerSatisfaction': 3,
         'OvertimeDaysPerMonth': 0,
@@ -395,9 +413,10 @@ def engineer_features(df):
         else:
             df[col] = default
 
-    # ---- If MonthlyIncome was not in the original data, derive it from Salary ----
-    # (The user's "Salary" column is the monthly salary)
-    if 'MonthlyIncome' not in original_columns and 'Salary' in original_columns:
+    # Sync again if one was empty
+    if (df['Salary'] == 5000).all() and not (df['MonthlyIncome'] == 5000).all():
+        df['Salary'] = df['MonthlyIncome']
+    if (df['MonthlyIncome'] == 5000).all() and not (df['Salary'] == 5000).all():
         df['MonthlyIncome'] = df['Salary']
 
     # ---- NO SCALING HERE — preserve original values for display ----

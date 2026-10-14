@@ -28,7 +28,7 @@ class FeedbackAgent:
         is_retained = outcome_status.lower() == 'retained'
         reward = 1.0 if is_retained else -1.0
 
-        self.bandit.update_policy(employee_record, action, reward)
+        telemetry = self.bandit.update_policy(employee_record, action, reward)
         emp_id = employee_record.get('EmployeeID', 'N/A')
 
         logger.info(f"[{self.name} Agent] Processed outcome for Employee #{emp_id}: {outcome_status.upper()} (Reward: {reward:+.1f}).")
@@ -37,5 +37,6 @@ class FeedbackAgent:
             'action': action,
             'outcome': outcome_status,
             'reward': reward,
-            'status': 'Policy Parameters Updated Successfully'
+            'status': 'Policy Parameters Updated Successfully',
+            'telemetry': telemetry
         }

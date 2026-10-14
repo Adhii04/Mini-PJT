@@ -99,18 +99,57 @@ class ContextualBanditStrategist:
         best_action = max(ucb_scores, key=ucb_scores.get)
         return best_action, ucb_scores
 
-    def update_policy(self, employee_dict: Dict[str, Any], action: str, reward: float):
+    def update_policy(self, employee_dict: Dict[str, Any], action: str, reward: float) -> Dict[str, Any]:
         """
         Updates LinUCB parameters with observed intervention outcome reward (+1.0 retained / -1.0 churned).
+        Returns detailed policy adaptation telemetry.
         """
         if action not in self.actions:
             logger.warning(f"Action '{action}' is not in known action set.")
-            return
+            return {'status': 'Unknown action', 'action': action}
 
         x = self._extract_context_vector(employee_dict)
+        
+        # 1. Prior estimations
+        A_inv_prior = np.linalg.inv(self.A[action])
+        theta_prior = float(((A_inv_prior @ self.b[action]).T @ x).item())
+        var_prior = float((x.T @ A_inv_prior @ x).item())
+
+        # 2. Update matrices: A_a <- A_a + x x^T, b_a <- b_a + r x
         self.A[action] += x @ x.T
         self.b[action] += reward * x
-        logger.info(f"Bandit policy updated for arm '{action}' with reward={reward:+.1f}")
+
+        # 3. Posterior estimations
+        A_inv_post = np.linalg.inv(self.A[action])
+        theta_post = float(((A_inv_post @ self.b[action]).T @ x).item())
+        var_post = float((x.T @ A_inv_post @ x).item())
+
+        reward_delta = round(theta_post - theta_prior, 4)
+        uncertainty_reduction = round(max(0.0, var_prior - var_post), 5)
+        uncertainty_pct = round((uncertainty_reduction / max(var_prior, 1e-6)) * 100.0, 1)
+
+        insight = (
+            f"LinUCB policy reinforced arm '{action}' with reward {reward:+.1f}. "
+            f"Expected arm payoff shifted from {theta_prior:.3f} to {theta_post:.3f} ({reward_delta:+.3f}), "
+            f"reducing exploration uncertainty variance by {uncertainty_pct}% for this employee profile."
+        )
+
+        logger.info(f"Bandit policy updated for arm '{action}' with reward={reward:+.1f} (delta={reward_delta:+.4f})")
+        return {
+            'action': action,
+            'action_arm': action,
+            'reward': reward,
+            'reward_signal': reward,
+            'prior_expected_reward': round(theta_prior, 4),
+            'posterior_expected_reward': round(theta_post, 4),
+            'reward_delta': reward_delta,
+            'uncertainty_variance_prior': round(var_prior, 5),
+            'uncertainty_variance_post': round(var_post, 5),
+            'uncertainty_reduction_pct': uncertainty_pct,
+            'uncertainty_shrinkage_pct': uncertainty_pct,
+            'insight': insight,
+            'actionable_insight': insight
+        }
 
 
 # Singleton default strategist bandit

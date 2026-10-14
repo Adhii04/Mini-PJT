@@ -35,6 +35,14 @@ from models.prediction import (
     assign_resignation_cluster, determine_model_source
 )
 
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score,
+    roc_auc_score, brier_score_loss, confusion_matrix, roc_curve
+)
+from imblearn.over_sampling import SMOTE
+from sksurv.metrics import concordance_index_censored
+
 logger = logging.getLogger(__name__)
 
 
@@ -186,6 +194,21 @@ def train_pipeline(X, T, E, employee_info):
     result['rsf'] = rsf
     logger.info(f"  RSF trained in {rsf_train_time}s")
 
+    # Binary Logistic Regression Baseline with SMOTE (from model_evaluation.ipynb)
+    lr_start = time.time()
+    try:
+        smote = SMOTE(random_state=42)
+        X_train_res, E_train_res = smote.fit_resample(X_train, E_train)
+        lr = LogisticRegression(max_iter=1000, random_state=42)
+        lr.fit(X_train_res, E_train_res)
+    except Exception as e:
+        logger.warning(f"SMOTE baseline fit fallback: {e}")
+        lr = LogisticRegression(max_iter=1000, class_weight='balanced', random_state=42)
+        lr.fit(X_train, E_train)
+    lr_train_time = round(time.time() - lr_start, 2)
+    result['baseline_lr'] = lr
+    logger.info(f"  SMOTE Logistic Regression baseline trained in {lr_train_time}s")
+
     # ================================================================
     # STEP 5: Evaluate on Train AND Test Sets
     # ================================================================
@@ -222,6 +245,109 @@ def train_pipeline(X, T, E, employee_info):
     # Cox hazard ratios
     hazard_ratios = compute_cox_hazard_ratios(cph)
 
+    # Baseline LR test evaluation (SMOTE)
+    p_lr_test = lr.predict_proba(X_test)[:, 1]
+    fpr_lr, tpr_lr, th_lr = roc_curve(E_test, p_lr_test)
+    best_th_lr = th_lr[np.argmax(tpr_lr - fpr_lr)]
+    if np.isinf(best_th_lr) or best_th_lr > 1.0 or best_th_lr < 0.0:
+        best_th_lr = 0.5
+    y_pred_lr = (p_lr_test >= best_th_lr).astype(int)
+    cm_lr = confusion_matrix(E_test, y_pred_lr)
+    tn_lr, fp_lr, fn_lr, tp_lr = cm_lr.ravel()
+    lr_auc = round(float(roc_auc_score(E_test, p_lr_test)), 4)
+    lr_brier = round(float(brier_score_loss(E_test, p_lr_test)), 4)
+    lr_acc = round(float(accuracy_score(E_test, y_pred_lr)), 4)
+    lr_prec = round(float(precision_score(E_test, y_pred_lr, zero_division=0)), 4)
+    lr_rec = round(float(recall_score(E_test, y_pred_lr, zero_division=0)), 4)
+    lr_spec = round(float(tn_lr / max(tn_lr + fp_lr, 1)), 4)
+    lr_f1 = round(float(f1_score(E_test, y_pred_lr, zero_division=0)), 4)
+
+    baseline_stats = {
+        'model_name': 'Binary Logistic Regression (SMOTE Baseline)',
+        'c_index_auc': lr_auc,
+        'roc_auc': lr_auc,
+        'brier_score': lr_brier,
+        'accuracy': lr_acc,
+        'precision': lr_prec,
+        'recall': lr_rec,
+        'specificity': lr_spec,
+        'f1_score': lr_f1,
+        'threshold': round(float(best_th_lr), 3),
+        'confusion_matrix': {'tp': int(tp_lr), 'tn': int(tn_lr), 'fp': int(fp_lr), 'fn': int(fn_lr)},
+        'TP': int(tp_lr), 'TN': int(tn_lr), 'FP': int(fp_lr), 'FN': int(fn_lr),
+        'cm': cm_lr,
+        'notes': 'SMOTE-balanced binary classifier trained on training split and evaluated on held-out test split.'
+    }
+    result['baseline_stats'] = baseline_stats
+
+    # Youden's J evaluation for survival models from model_evaluation.ipynb
+    X_cox_test = X_test[cph.params_.index]
+    cox_risk_test = cph.predict_partial_hazard(X_cox_test).values.flatten()
+    rsf_risk_test = rsf.predict(X_test.values)
+
+    p_cox_test = (cox_risk_test - cox_risk_test.min()) / (cox_risk_test.max() - cox_risk_test.min() + 1e-8)
+    p_rsf_test = (rsf_risk_test - rsf_risk_test.min()) / (rsf_risk_test.max() - rsf_risk_test.min() + 1e-8)
+
+    w_cox, w_rsf = compute_ensemble_weights(cox_test_ci, rsf_test_ci)
+    p_ens_test = w_cox * p_cox_test + w_rsf * p_rsf_test
+
+    def _extract_metrics(y_true, y_prob):
+        fpr, tpr, thresholds = roc_curve(y_true, y_prob)
+        th = thresholds[np.argmax(tpr - fpr)]
+        if np.isinf(th) or th > 1.0 or th < 0.0:
+            th = 0.5
+        y_pred = (y_prob >= th).astype(int)
+        cm = confusion_matrix(y_true, y_pred)
+        tn, fp, fn, tp = cm.ravel()
+        return {
+            'threshold': round(float(th), 3),
+            'accuracy': round(float(accuracy_score(y_true, y_pred)), 4),
+            'precision': round(float(precision_score(y_true, y_pred, zero_division=0)), 4),
+            'recall': round(float(recall_score(y_true, y_pred, zero_division=0)), 4),
+            'specificity': round(float(tn / max(tn + fp, 1)), 4),
+            'f1_score': round(float(f1_score(y_true, y_pred, zero_division=0)), 4),
+            'roc_auc': round(float(roc_auc_score(y_true, y_prob)), 4),
+            'TP': int(tp), 'TN': int(tn), 'FP': int(fp), 'FN': int(fn),
+            'cm': cm
+        }
+
+    cox_class_metrics = _extract_metrics(E_test, p_cox_test)
+    rsf_class_metrics = _extract_metrics(E_test, p_rsf_test)
+    ens_class_metrics = _extract_metrics(E_test, p_ens_test)
+
+    # Generate multi-model ROC Curves and Confusion Matrix plots
+    from models.survival_models import plot_roc_comparison, plot_confusion_matrices_grid
+
+    roc_data = [
+        ("Cox Proportional Hazards", E_test, p_cox_test, '#3b82f6', 2.0),
+        ("Random Survival Forest", E_test, p_rsf_test, '#10b981', 2.0),
+        ("Weighted Survival Ensemble", E_test, p_ens_test, '#06b6d4', 2.5),
+        ("SMOTE Logistic Baseline", E_test, p_lr_test, '#a855f7', 1.8)
+    ]
+    try:
+        roc_plot = plot_roc_comparison(roc_data)
+    except Exception as e:
+        logger.warning(f"ROC curve plot error: {e}")
+        roc_plot = None
+
+    cm_data = [
+        ("SMOTE Logistic", cm_lr, lr_acc, lr_rec, lr_f1, "Purples"),
+        ("Cox PH", cox_class_metrics['cm'], cox_class_metrics['accuracy'], cox_class_metrics['recall'], cox_class_metrics['f1_score'], "Blues"),
+        ("RSF", rsf_class_metrics['cm'], rsf_class_metrics['accuracy'], rsf_class_metrics['recall'], rsf_class_metrics['f1_score'], "Greens"),
+        ("Ensemble", ens_class_metrics['cm'], ens_class_metrics['accuracy'], ens_class_metrics['recall'], ens_class_metrics['f1_score'], "Oranges")
+    ]
+    try:
+        cm_plot = plot_confusion_matrices_grid(cm_data)
+    except Exception as e:
+        logger.warning(f"Confusion matrix plot error: {e}")
+        cm_plot = None
+
+    result['roc_curve_plot'] = roc_plot
+    result['confusion_matrices_plot'] = cm_plot
+
+    ens_test_ci = round(float(concordance_index_censored(E_test.astype(bool), T_test, p_ens_test)[0]), 4)
+    ens_test_ibs = round(float(w_cox * cox_test_ibs + w_rsf * rsf_test_ibs), 4)
+
     result['metrics'] = {
         'cox': {
             'train_c_index': cox_train_ci,
@@ -230,7 +356,8 @@ def train_pipeline(X, T, E, employee_info):
             'test_ibs': cox_test_ibs,
             'train_time': cox_train_time,
             'calibration': cox_calibration,
-            'hazard_ratios': hazard_ratios
+            'hazard_ratios': hazard_ratios,
+            'classification': cox_class_metrics
         },
         'rsf': {
             'train_c_index': rsf_train_ci,
@@ -239,7 +366,14 @@ def train_pipeline(X, T, E, employee_info):
             'test_ibs': rsf_test_ibs,
             'train_time': rsf_train_time,
             'calibration': rsf_calibration,
-            'n_estimators': best_rsf_params.get('n_estimators', 300)
+            'n_estimators': best_rsf_params.get('n_estimators', 300),
+            'classification': rsf_class_metrics
+        },
+        'ensemble': {
+            'test_c_index': ens_test_ci,
+            'test_ibs': ens_test_ibs,
+            'weights': {'cox': w_cox, 'rsf': w_rsf},
+            'classification': ens_class_metrics
         }
     }
 
@@ -269,16 +403,15 @@ def train_pipeline(X, T, E, employee_info):
     # ================================================================
     logger.info("STEP 7: Computing weighted ensemble...")
 
-    w_cox, w_rsf = compute_ensemble_weights(cox_test_ci, rsf_test_ci)
     result['ensemble_weights'] = {'cox': w_cox, 'rsf': w_rsf}
 
     # Determine best model
-    if cox_test_ci > rsf_test_ci:
-        best_model = 'Cox PH'
+    if ens_test_ci >= max(cox_test_ci, rsf_test_ci):
+        best_model = 'Self-Calibrating Survival Ensemble'
     elif rsf_test_ci > cox_test_ci:
         best_model = 'Random Survival Forest'
     else:
-        best_model = 'Tie'
+        best_model = 'Cox Proportional Hazards'
 
     result['best_model'] = best_model
     logger.info(f"  Best model: {best_model}")
@@ -286,37 +419,32 @@ def train_pipeline(X, T, E, employee_info):
     # ================================================================
     # STEP 8: Generate Predictions for ALL Employees
     # ================================================================
-    logger.info("STEP 8: Generating predictions for all employees...")
-
-    # Predict on ALL employees (for display), but note which are train/test
-    cox_medians = cox_predict_median(cph, X).values.flatten()
-    rsf_medians = rsf_predict_median(rsf, X)
-
-    # Weighted ensemble
-    avg_medians = compute_weighted_ensemble_medians(cox_medians, rsf_medians, w_cox, w_rsf)
-
-    # Data-driven risk thresholds (computed on TRAINING predictions only)
-    train_avg_medians = compute_weighted_ensemble_medians(
-        cox_predict_median(cph, X_train).values.flatten(),
-        rsf_predict_median(rsf, X_train),
-        w_cox, w_rsf
-    )
-    risk_thresholds = compute_risk_thresholds(train_avg_medians)
-    result['risk_thresholds'] = risk_thresholds
-
-    # Build predictions DataFrame
-    predictions = employee_info.copy()
-    predictions['cox_median_months'] = np.round(cox_medians, 1)
-    predictions['rsf_median_months'] = np.round(rsf_medians, 1)
-    predictions['avg_median_months'] = np.round(avg_medians, 1)
-    predictions['resignation_cluster'] = [assign_resignation_cluster(m) for m in avg_medians]
-    predictions['risk_category'] = [
-        assign_risk_category_data_driven(m, risk_thresholds) for m in avg_medians
-    ]
+    logger.info("STEP 8: Generating continuous predictions for all employees...")
 
     # Compute continuous S_ens(t) survival curves and multi-horizon churn probabilities
     from models.prediction import compute_ensemble_survival_curves
     surv_df, churn_df, horizon_dict = compute_ensemble_survival_curves(cph, rsf, X, w_cox, w_rsf)
+
+    # Continuous realistic expected tenure from numerical integration of individual survival curves
+    expected_tenure = horizon_dict['expected_tenure']
+    cox_expected = horizon_dict['cox_expected_tenure']
+    rsf_expected = horizon_dict['rsf_expected_tenure']
+
+    # Percentile-based thresholds derived from continuous expected tenure
+    risk_thresholds = compute_risk_thresholds(expected_tenure)
+    result['risk_thresholds'] = risk_thresholds
+
+    # Build predictions DataFrame
+    predictions = employee_info.copy()
+    predictions['cox_median_months'] = np.round(cox_expected, 1)
+    predictions['rsf_median_months'] = np.round(rsf_expected, 1)
+    predictions['avg_median_months'] = np.round(expected_tenure, 1)
+    predictions['expected_tenure_months'] = np.round(expected_tenure, 1)
+    predictions['resignation_cluster'] = [assign_resignation_cluster(m) for m in expected_tenure]
+    predictions['risk_category'] = [
+        assign_risk_category_data_driven(m, risk_thresholds) for m in expected_tenure
+    ]
+
     predictions['prob_churn_30d'] = horizon_dict['prob_churn_30d']
     predictions['prob_churn_60d'] = horizon_dict['prob_churn_60d']
     predictions['prob_churn_90d'] = horizon_dict['prob_churn_90d']
@@ -334,13 +462,12 @@ def train_pipeline(X, T, E, employee_info):
     # Model source for each prediction
     predictions['model_source'] = [
         determine_model_source(cm, rm, w_cox, w_rsf)
-        for cm, rm in zip(cox_medians, rsf_medians)
+        for cm, rm in zip(cox_expected, rsf_expected)
     ]
 
     result['predictions'] = predictions
     result['survival_curves'] = surv_df
     result['churn_curves'] = churn_df
-
 
     # ================================================================
     # STEP 9: Build Model Comparison
@@ -348,8 +475,13 @@ def train_pipeline(X, T, E, employee_info):
     logger.info("STEP 9: Building model comparison...")
 
     model_comparison = {
-        'cox_ph_c_index': cox_test_ci,  # Report TEST C-index as the main metric
+        'baseline_lr_auc': lr_auc,
+        'baseline_lr_brier': lr_brier,
+        'baseline_stats': baseline_stats,
+        'cox_ph_c_index': cox_test_ci,
         'rsf_c_index': rsf_test_ci,
+        'ensemble_c_index': ens_test_ci,
+        'ensemble_ibs': ens_test_ibs,
         'cox_train_c_index': cox_train_ci,
         'rsf_train_c_index': rsf_train_ci,
         'cox_cv_mean': cox_cv['mean'],
@@ -360,12 +492,19 @@ def train_pipeline(X, T, E, employee_info):
         'rsf_ibs': rsf_test_ibs,
         'cox_train_time': cox_train_time,
         'rsf_train_time': rsf_train_time,
+        'baseline_train_time': lr_train_time,
         'winner': best_model,
         'margin': round(abs(cox_test_ci - rsf_test_ci), 4),
         'ensemble_weights': {'cox': w_cox, 'rsf': w_rsf},
         'interpretation': _build_interpretation(
             cox_test_ci, rsf_test_ci, cox_cv, rsf_cv, best_model
-        )
+        ),
+        'classification_metrics': {
+            'baseline': baseline_stats,
+            'cox': cox_class_metrics,
+            'rsf': rsf_class_metrics,
+            'ensemble': ens_class_metrics
+        }
     }
     result['model_comparison'] = model_comparison
 

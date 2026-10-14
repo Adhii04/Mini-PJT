@@ -133,18 +133,22 @@ def determine_model_source(cox_median, rsf_median, w_cox, w_rsf):
         return 'Weighted Ensemble'
 
 
-def compute_ensemble_survival_curves(cph, rsf, X, w_cox, w_rsf, times=[1, 2, 3, 6, 12, 18, 24, 36, 48]):
+def compute_ensemble_survival_curves(cph, rsf, X, w_cox, w_rsf, times=[1, 2, 3, 6, 12, 18, 24, 36, 48, 60]):
     """
     Compute multi-horizon ensemble survival probabilities S_ens(t) and churn probabilities P_churn(t) = 1 - S_ens(t).
+    Also computes continuous Restricted Mean Survival Time (RMST) for expected remaining tenure.
     
     Returns:
     - surv_df: DataFrame (employees x times) containing survival probabilities
     - churn_df: DataFrame (employees x times) containing churn probabilities
-    - horizon_dict: Dict of key horizon probabilities per employee (e.g. 30d, 60d, 90d)
+    - horizon_dict: Dict of key horizon probabilities per employee (e.g. 30d, 60d, 90d) and expected tenure
     """
     # 1. Cox PH survival predictions
     try:
-        X_cox = X[cph.params_.index]
+        X_cox = pd.DataFrame(0.0, index=X.index, columns=cph.params_.index)
+        for c in cph.params_.index:
+            if c in X.columns:
+                X_cox[c] = X[c]
         cox_surv = cph.predict_survival_function(X_cox, times=times).T  # Transpose to shape (n_samples, n_times)
         cox_surv.columns = times
     except Exception as e:
@@ -176,10 +180,43 @@ def compute_ensemble_survival_curves(cph, rsf, X, w_cox, w_rsf, times=[1, 2, 3, 
     prob_60d = churn_df[2].values if 2 in churn_df.columns else churn_df.iloc[:, 1].values
     prob_90d = churn_df[3].values if 3 in churn_df.columns else churn_df.iloc[:, 2].values
 
+    # Continuous Expected Remaining Tenure: Area under survival curve up to 60 months
+    t_points = np.array([0.0] + list(times))
+    expected_tenure_list = []
+    cox_expected_list = []
+    rsf_expected_list = []
+
+    # Helper for trapezoidal integration across numpy 1.x and 2.0+
+    def _safe_trapezoid(y_vals, x_vals):
+        if hasattr(np, 'trapezoid'):
+            return np.trapezoid(y_vals, x_vals)
+        elif hasattr(np, 'trapz'):
+            return np.trapz(y_vals, x_vals)
+        else:
+            try:
+                from scipy.integrate import trapezoid
+                return trapezoid(y_vals, x_vals)
+            except ImportError:
+                # Basic manual trapezoidal rule fallback
+                dx = np.diff(x_vals)
+                return np.sum(dx * (y_vals[:-1] + y_vals[1:]) / 2.0)
+
+    for i in range(len(surv_df)):
+        s_ens = np.array([1.0] + list(surv_df.iloc[i].values))
+        s_cox = np.array([1.0] + list(cox_surv.iloc[i].values))
+        s_rsf = np.array([1.0] + list(rsf_surv.iloc[i].values))
+        
+        expected_tenure_list.append(round(float(_safe_trapezoid(s_ens, t_points)), 1))
+        cox_expected_list.append(round(float(_safe_trapezoid(s_cox, t_points)), 1))
+        rsf_expected_list.append(round(float(_safe_trapezoid(s_rsf, t_points)), 1))
+
     horizon_dict = {
         'prob_churn_30d': np.round(prob_30d, 4),
         'prob_churn_60d': np.round(prob_60d, 4),
         'prob_churn_90d': np.round(prob_90d, 4),
+        'expected_tenure': np.array(expected_tenure_list),
+        'cox_expected_tenure': np.array(cox_expected_list),
+        'rsf_expected_tenure': np.array(rsf_expected_list)
     }
 
     return surv_df, churn_df, horizon_dict

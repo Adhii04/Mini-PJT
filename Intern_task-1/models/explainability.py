@@ -5,8 +5,10 @@ Provides global and per-employee SHAP explanations for the RSF model.
 
 import numpy as np
 import pandas as pd
+import sys
 import matplotlib
-matplotlib.use('Agg')
+if 'ipykernel' not in sys.modules:
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import shap
 import io

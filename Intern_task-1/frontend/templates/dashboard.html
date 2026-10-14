@@ -1,1971 +1,1267 @@
 <!DOCTYPE html>
-<html lang="en" id="html-root">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nexus — Employee Retention Intelligence</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<style>
-/* ═══════════════════════════════════════════════════════════════
-   TOKENS
-═══════════════════════════════════════════════════════════════ */
-:root {
-  /* Typography */
-  --font: 'Inter', system-ui, sans-serif;
-  --mono: 'JetBrains Mono', monospace;
-
-  /* Radius */
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 16px;
-  --r-xl: 22px;
-
-  /* Transitions */
-  --ease: all .18s cubic-bezier(.4,0,.2,1);
-}
-
-/* ── LIGHT THEME ─────────────────────────────────────────────── */
-html.light {
-  --bg:        #f4f5f7;
-  --bg-panel:  #ffffff;
-  --bg-hover:  #f0f1f4;
-  --bg-inset:  #f7f8fa;
-  --border:    rgba(0,0,0,.08);
-  --text-1:    #0d0f14;
-  --text-2:    #4b5263;
-  --text-3:    #8b92a5;
-  --accent-1:  #2563eb;
-  --accent-2:  #7c3aed;
-  --accent-g:  linear-gradient(135deg,#2563eb,#7c3aed);
-  --shadow:    0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
-  --shadow-lg: 0 4px 24px rgba(37,99,235,.18);
-  --risk-critical: #dc2626;
-  --risk-high:     #ea580c;
-  --risk-medium:   #ca8a04;
-  --risk-low:      #16a34a;
-}
-
-/* ── DARK THEME ──────────────────────────────────────────────── */
-html.dark {
-  --bg:        #0b0e17;
-  --bg-panel:  #121625;
-  --bg-hover:  #191e30;
-  --bg-inset:  #0e1120;
-  --border:    rgba(255,255,255,.07);
-  --text-1:    #edf0f7;
-  --text-2:    #8a93ad;
-  --text-3:    #505a74;
-  --accent-1:  #3b82f6;
-  --accent-2:  #a78bfa;
-  --accent-g:  linear-gradient(135deg,#3b82f6,#a78bfa);
-  --shadow:    0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
-  --shadow-lg: 0 4px 24px rgba(59,130,246,.2);
-  --risk-critical: #f87171;
-  --risk-high:     #fb923c;
-  --risk-medium:   #facc15;
-  --risk-low:      #4ade80;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   RESET & BASE
-═══════════════════════════════════════════════════════════════ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:15px}
-body{
-  font-family:var(--font);
-  background:var(--bg);
-  color:var(--text-1);
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  transition:background .25s,color .25s;
-  line-height:1.55;
-}
-a{color:inherit;text-decoration:none}
-button{font-family:var(--font);cursor:pointer;border:none;outline:none;background:none}
-input,select{font-family:var(--font)}
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
-.hidden{display:none!important}
-
-/* ═══════════════════════════════════════════════════════════════
-   LAYOUT — SIDEBAR + CONTENT
-═══════════════════════════════════════════════════════════════ */
-.app{display:flex;min-height:100vh}
-
-/* ── SIDEBAR ─────────────────────────────────────────────────── */
-.sidebar{
-  width:220px;
-  min-height:100vh;
-  background:var(--bg-panel);
-  border-right:1px solid var(--border);
-  display:flex;
-  flex-direction:column;
-  padding:20px 0;
-  position:sticky;top:0;height:100vh;
-  flex-shrink:0;
-  z-index:10;
-  transition:var(--ease);
-}
-.sidebar-logo{
-  display:flex;align-items:center;gap:10px;
-  padding:0 18px 22px;
-  border-bottom:1px solid var(--border);
-  margin-bottom:12px;
-}
-.logo-mark{
-  width:34px;height:34px;border-radius:9px;
-  background:var(--accent-g);
-  display:flex;align-items:center;justify-content:center;
-  font-weight:800;font-size:15px;color:#fff;letter-spacing:-1px;
-  flex-shrink:0;
-}
-.logo-text{font-weight:700;font-size:.95rem;letter-spacing:-.3px;color:var(--text-1)}
-.logo-sub{font-size:.68rem;color:var(--text-3);font-weight:400}
-
-.nav-section{
-  padding:0 10px;
-  display:flex;flex-direction:column;gap:2px;
-  flex:1;
-}
-.nav-label{
-  font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--text-3);padding:12px 8px 4px;
-}
-.nav-item{
-  display:flex;align-items:center;gap:10px;
-  padding:8px 10px;
-  border-radius:var(--r-sm);
-  font-size:.83rem;font-weight:500;
-  color:var(--text-2);
-  transition:var(--ease);
-  cursor:pointer;
-}
-.nav-item:hover{background:var(--bg-hover);color:var(--text-1)}
-.nav-item.active{
-  background:rgba(59,130,246,.12);
-  color:var(--accent-1);
-  font-weight:600;
-}
-.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.7}
-.nav-item.active svg{opacity:1}
-
-.sidebar-footer{
-  padding:16px 18px;
-  border-top:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-  font-size:.72rem;color:var(--text-3);
-}
-.api-pill{
-  display:flex;align-items:center;gap:5px;
-  font-size:.7rem;font-weight:600;
-  padding:3px 8px;border-radius:99px;
-}
-.api-pill.online{background:rgba(74,222,128,.12);color:#4ade80}
-.api-pill.offline{background:rgba(248,113,113,.12);color:#f87171}
-.api-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
-
-/* ── MAIN CONTENT ────────────────────────────────────────────── */
-.content{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
-
-.topbar{
-  background:var(--bg-panel);
-  border-bottom:1px solid var(--border);
-  padding:0 28px;
-  height:58px;
-  display:flex;align-items:center;justify-content:space-between;
-  gap:16px;
-  position:sticky;top:0;z-index:5;
-}
-.topbar-left{display:flex;align-items:center;gap:12px}
-.page-title{font-size:1rem;font-weight:700;letter-spacing:-.3px;color:var(--text-1)}
-.dataset-badge{
-  font-size:.72rem;font-weight:600;
-  padding:3px 10px;border-radius:99px;
-  background:rgba(59,130,246,.1);
-  color:var(--accent-1);
-  border:1px solid rgba(59,130,246,.2);
-}
-.topbar-right{display:flex;align-items:center;gap:10px}
-
-/* Theme Toggle */
-.theme-toggle{
-  width:38px;height:22px;border-radius:99px;
-  background:var(--bg-hover);
-  border:1px solid var(--border);
-  position:relative;cursor:pointer;
-  transition:var(--ease);
-}
-.theme-toggle-thumb{
-  width:16px;height:16px;border-radius:50%;
-  background:var(--accent-1);
-  position:absolute;top:2px;left:2px;
-  transition:var(--ease);
-}
-html.dark .theme-toggle-thumb{transform:translateX(16px)}
-
-.workspace{
-  flex:1;
-  padding:24px 28px;
-  overflow-y:auto;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   TABS / PANELS
-═══════════════════════════════════════════════════════════════ */
-.tab-panel{display:none}
-.tab-panel.active{display:block}
-
-/* ═══════════════════════════════════════════════════════════════
-   CARDS
-═══════════════════════════════════════════════════════════════ */
-.card{
-  background:var(--bg-panel);
-  border:1px solid var(--border);
-  border-radius:var(--r-lg);
-  box-shadow:var(--shadow);
-}
-.card-pad{padding:20px 22px}
-.card-title{
-  font-size:.82rem;font-weight:700;letter-spacing:-.1px;
-  color:var(--text-1);margin-bottom:4px;
-}
-.card-sub{font-size:.75rem;color:var(--text-3);margin-bottom:16px}
-
-/* ═══════════════════════════════════════════════════════════════
-   GRID UTILITIES
-═══════════════════════════════════════════════════════════════ */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.grid-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
-.col-span-2{grid-column:span 2}
-.col-span-3{grid-column:span 3}
-.mb-4{margin-bottom:14px}
-.mb-6{margin-bottom:20px}
-.space-y > * + *{margin-top:14px}
-
-/* ═══════════════════════════════════════════════════════════════
-   METRIC KPI CARDS
-═══════════════════════════════════════════════════════════════ */
-.kpi{
-  background:var(--bg-panel);
-  border:1px solid var(--border);
-  border-radius:var(--r-lg);
-  padding:18px 20px;
-  box-shadow:var(--shadow);
-  position:relative;overflow:hidden;
-}
-.kpi-label{
-  font-size:.72rem;font-weight:600;text-transform:uppercase;
-  letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;
-}
-.kpi-value{
-  font-size:1.9rem;font-weight:800;letter-spacing:-.04em;
-  color:var(--text-1);line-height:1;
-  margin-bottom:6px;
-  font-variant-numeric:tabular-nums;
-}
-.kpi-delta{
-  font-size:.75rem;font-weight:600;
-  display:flex;align-items:center;gap:5px;
-  color:var(--text-3);
-}
-.kpi-delta.up{color:var(--risk-low)}
-.kpi-delta.down{color:var(--risk-critical)}
-.kpi-bar{
-  position:absolute;bottom:0;left:0;right:0;height:3px;
-  background:var(--accent-g);
-  border-radius:0 0 var(--r-lg) var(--r-lg);
-}
-.kpi-icon{
-  position:absolute;top:16px;right:16px;
-  width:32px;height:32px;border-radius:var(--r-sm);
-  display:flex;align-items:center;justify-content:center;
-  font-size:15px;
-  background:var(--bg-inset);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   CHART CONTAINERS
-═══════════════════════════════════════════════════════════════ */
-.chart-wrap{
-  position:relative;
-  width:100%;
-}
-.chart-wrap canvas{width:100%!important;max-height:220px}
-.chart-wrap.tall canvas{max-height:260px}
-.chart-wrap.donut canvas{max-height:200px;max-width:200px;margin:0 auto}
-
-/* ═══════════════════════════════════════════════════════════════
-   TABLE
-═══════════════════════════════════════════════════════════════ */
-.table-wrap{overflow-x:auto;border-radius:var(--r-md)}
-table{width:100%;border-collapse:collapse;font-size:.78rem}
-thead{background:var(--bg-inset)}
-th{
-  padding:9px 12px;text-align:left;
-  font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--text-3);white-space:nowrap;
-  border-bottom:1px solid var(--border);
-}
-td{
-  padding:9px 12px;
-  color:var(--text-2);
-  border-bottom:1px solid var(--border);
-  white-space:nowrap;
-  vertical-align:middle;
-}
-tr:last-child td{border-bottom:none}
-tbody tr{transition:var(--ease)}
-tbody tr:hover{background:var(--bg-hover)}
-tbody tr.clickable{cursor:pointer}
-
-/* ═══════════════════════════════════════════════════════════════
-   BADGES
-═══════════════════════════════════════════════════════════════ */
-.badge{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:2px 9px;border-radius:99px;
-  font-size:.68rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
-}
-.badge-critical{background:rgba(220,38,38,.1);color:var(--risk-critical);border:1px solid rgba(220,38,38,.2)}
-.badge-high{background:rgba(234,88,12,.1);color:var(--risk-high);border:1px solid rgba(234,88,12,.2)}
-.badge-medium{background:rgba(202,138,4,.1);color:var(--risk-medium);border:1px solid rgba(202,138,4,.2)}
-.badge-low{background:rgba(22,163,74,.1);color:var(--risk-low);border:1px solid rgba(22,163,74,.2)}
-.badge-neutral{background:var(--bg-hover);color:var(--text-2);border:1px solid var(--border)}
-
-/* ═══════════════════════════════════════════════════════════════
-   BUTTONS
-═══════════════════════════════════════════════════════════════ */
-.btn{
-  display:inline-flex;align-items:center;gap:7px;
-  padding:8px 18px;border-radius:var(--r-md);
-  font-size:.82rem;font-weight:600;
-  transition:var(--ease);letter-spacing:-.01em;
-}
-.btn-primary{
-  background:var(--accent-g);color:#fff;
-  box-shadow:0 2px 12px rgba(59,130,246,.35);
-}
-.btn-primary:hover{opacity:.88;transform:translateY(-1px);box-shadow:var(--shadow-lg)}
-.btn-secondary{
-  background:var(--bg-hover);color:var(--text-2);
-  border:1px solid var(--border);
-}
-.btn-secondary:hover{background:var(--bg-inset);color:var(--text-1)}
-.btn-ghost{
-  color:var(--text-3);
-  border:1px solid var(--border);
-}
-.btn-ghost:hover{background:var(--bg-hover);color:var(--text-2)}
-.btn-sm{padding:5px 12px;font-size:.75rem}
-.btn-full{width:100%;justify-content:center}
-.btn:disabled{opacity:.4;pointer-events:none}
-
-/* ═══════════════════════════════════════════════════════════════
-   FORM ELEMENTS
-═══════════════════════════════════════════════════════════════ */
-.input{
-  background:var(--bg-inset);
-  border:1px solid var(--border);
-  border-radius:var(--r-md);
-  padding:8px 12px;
-  font-size:.82rem;
-  color:var(--text-1);
-  width:100%;
-  transition:var(--ease);
-  outline:none;
-}
-.input:focus{border-color:var(--accent-1)}
-.select{
-  background:var(--bg-inset);
-  border:1px solid var(--border);
-  border-radius:var(--r-md);
-  padding:7px 12px;
-  font-size:.78rem;
-  color:var(--text-2);
-  cursor:pointer;
-  outline:none;
-  transition:var(--ease);
-}
-.select:focus{border-color:var(--accent-1)}
-
-/* ═══════════════════════════════════════════════════════════════
-   UPLOAD ZONE
-═══════════════════════════════════════════════════════════════ */
-.upload-zone{
-  border:2px dashed var(--border);
-  border-radius:var(--r-lg);
-  padding:40px 24px;
-  text-align:center;
-  cursor:pointer;
-  transition:var(--ease);
-  background:var(--bg-inset);
-}
-.upload-zone:hover,.upload-zone.drag{
-  border-color:var(--accent-1);
-  background:rgba(59,130,246,.04);
-}
-.upload-icon{font-size:28px;margin-bottom:12px;opacity:.5}
-.upload-title{font-size:.9rem;font-weight:600;color:var(--text-1);margin-bottom:4px}
-.upload-sub{font-size:.75rem;color:var(--text-3)}
-
-/* Preset buttons */
-.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.preset-card{
-  display:flex;align-items:center;gap:12px;
-  padding:14px 16px;
-  background:var(--bg-inset);
-  border:1px solid var(--border);
-  border-radius:var(--r-lg);
-  cursor:pointer;transition:var(--ease);
-  text-align:left;
-}
-.preset-card:hover{
-  border-color:var(--accent-1);
-  background:rgba(59,130,246,.04);
-  transform:translateY(-1px);
-}
-.preset-icon{
-  width:40px;height:40px;border-radius:var(--r-md);
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;flex-shrink:0;
-  background:var(--bg-hover);
-}
-.preset-name{font-size:.83rem;font-weight:700;color:var(--text-1);margin-bottom:2px}
-.preset-meta{font-size:.7rem;color:var(--text-3)}
-
-/* ═══════════════════════════════════════════════════════════════
-   PIPELINE PROGRESS
-═══════════════════════════════════════════════════════════════ */
-.pipeline-step{
-  display:flex;align-items:center;gap:12px;
-  padding:10px 14px;
-  border-radius:var(--r-md);
-  font-size:.8rem;
-  color:var(--text-3);
-  border:1px solid transparent;
-  transition:var(--ease);
-}
-.pipeline-step.done{
-  color:var(--risk-low);
-  background:rgba(74,222,128,.06);
-  border-color:rgba(74,222,128,.2);
-}
-.pipeline-step.running{
-  color:var(--accent-1);
-  background:rgba(59,130,246,.07);
-  border-color:rgba(59,130,246,.25);
-  font-weight:600;
-}
-.step-indicator{
-  width:22px;height:22px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:.7rem;font-weight:700;
-  background:var(--bg-hover);
-  color:var(--text-3);
-  flex-shrink:0;
-}
-.pipeline-step.running .step-indicator{
-  background:var(--accent-1);color:#fff;
-}
-.pipeline-step.done .step-indicator{
-  background:var(--risk-low);color:#fff;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMPLOYEE DETAIL PANEL
-═══════════════════════════════════════════════════════════════ */
-.detail-panel{
-  position:fixed;right:0;top:0;bottom:0;
-  width:420px;
-  background:var(--bg-panel);
-  border-left:1px solid var(--border);
-  box-shadow:-8px 0 32px rgba(0,0,0,.15);
-  z-index:100;
-  overflow-y:auto;
-  transform:translateX(100%);
-  transition:transform .28s cubic-bezier(.4,0,.2,1);
-}
-.detail-panel.open{transform:translateX(0)}
-.detail-header{
-  padding:20px 22px 16px;
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:flex-start;justify-content:space-between;
-  gap:12px;
-}
-.detail-body{padding:20px 22px;display:flex;flex-direction:column;gap:18px}
-.detail-close{
-  width:30px;height:30px;border-radius:var(--r-sm);
-  display:flex;align-items:center;justify-content:center;
-  background:var(--bg-hover);color:var(--text-3);
-  cursor:pointer;flex-shrink:0;font-size:16px;
-  transition:var(--ease);
-}
-.detail-close:hover{background:var(--bg-inset);color:var(--text-1)}
-
-/* Progress bar */
-.progress-bar{
-  height:7px;border-radius:99px;
-  background:var(--bg-hover);overflow:hidden;
-}
-.progress-fill{
-  height:100%;border-radius:99px;
-  background:var(--accent-g);
-  transition:width .4s ease;
-}
-.progress-fill.danger{background:linear-gradient(90deg,#dc2626,#f87171)}
-
-/* Horizon chips */
-.horizon-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.horizon-chip{
-  border-radius:var(--r-md);padding:10px;
-  text-align:center;
-  background:var(--bg-inset);
-  border:1px solid var(--border);
-}
-.horizon-label{font-size:.65rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.06em;color:var(--text-3);margin-bottom:4px}
-.horizon-val{font-size:1.2rem;font-weight:800;letter-spacing:-.04em;
-  font-variant-numeric:tabular-nums;}
-
-/* Narrative */
-.narrative{
-  background:var(--bg-inset);
-  border:1px solid var(--border);
-  border-left:3px solid var(--accent-1);
-  border-radius:var(--r-md);
-  padding:14px 16px;
-  font-size:.8rem;line-height:1.65;color:var(--text-2);
-  font-style:italic;
-}
-
-/* Intervention card */
-.intervention-card{
-  border:1px solid var(--border);
-  border-radius:var(--r-lg);
-  overflow:hidden;
-}
-.intervention-header{
-  padding:12px 16px;
-  background:var(--accent-g);
-  color:#fff;
-  display:flex;align-items:center;justify-content:space-between;
-}
-.intervention-title{font-size:.82rem;font-weight:700}
-.intervention-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-.intervention-step{
-  display:flex;align-items:flex-start;gap:10px;
-  font-size:.78rem;color:var(--text-2);line-height:1.5;
-}
-.step-num{
-  width:20px;height:20px;border-radius:50%;flex-shrink:0;
-  background:rgba(59,130,246,.12);color:var(--accent-1);
-  font-size:.65rem;font-weight:700;
-  display:flex;align-items:center;justify-content:center;
-}
-.feedback-row{display:flex;gap:8px;padding:0 16px 14px}
-
-/* ═══════════════════════════════════════════════════════════════
-   SPINNER
-═══════════════════════════════════════════════════════════════ */
-.spinner{
-  width:22px;height:22px;border-radius:50%;
-  border:2.5px solid var(--border);
-  border-top-color:var(--accent-1);
-  animation:spin .7s linear infinite;
-  display:inline-block;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ═══════════════════════════════════════════════════════════════
-   TOAST
-═══════════════════════════════════════════════════════════════ */
-#toast-container{
-  position:fixed;bottom:20px;right:20px;z-index:200;
-  display:flex;flex-direction:column;gap:8px;
-}
-.toast{
-  padding:11px 16px;border-radius:var(--r-md);
-  font-size:.8rem;font-weight:500;
-  box-shadow:var(--shadow);
-  animation:slide-up .22s ease;
-  display:flex;align-items:center;gap:8px;
-  max-width:340px;
-}
-.toast.success{background:var(--bg-panel);border-left:3px solid var(--risk-low);color:var(--text-1)}
-.toast.error{background:var(--bg-panel);border-left:3px solid var(--risk-critical);color:var(--text-1)}
-.toast.info{background:var(--bg-panel);border-left:3px solid var(--accent-1);color:var(--text-1)}
-@keyframes slide-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-
-/* ═══════════════════════════════════════════════════════════════
-   SECTION HEADER
-═══════════════════════════════════════════════════════════════ */
-.section-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:14px;
-}
-.section-title{font-size:.9rem;font-weight:700;color:var(--text-1);letter-spacing:-.2px}
-.section-action{font-size:.75rem;color:var(--accent-1);font-weight:600;cursor:pointer}
-.section-action:hover{text-decoration:underline}
-
-/* ═══════════════════════════════════════════════════════════════
-   SEARCH & FILTER
-═══════════════════════════════════════════════════════════════ */
-.toolbar{
-  display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;
-}
-.search-box{
-  display:flex;align-items:center;gap:8px;
-  background:var(--bg-inset);
-  border:1px solid var(--border);
-  border-radius:var(--r-md);
-  padding:7px 12px;flex:1;min-width:200px;
-  transition:var(--ease);
-}
-.search-box:focus-within{border-color:var(--accent-1)}
-.search-box input{
-  background:none;border:none;outline:none;
-  font-size:.8rem;color:var(--text-1);width:100%;
-}
-.search-box svg{flex-shrink:0;color:var(--text-3);width:14px;height:14px}
-
-/* ═══════════════════════════════════════════════════════════════
-   INLINE LEGEND
-═══════════════════════════════════════════════════════════════ */
-.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
-.legend-item{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--text-3)}
-.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════════════════════════ */
-@media(max-width:1024px){
-  .grid-4{grid-template-columns:repeat(2,1fr)}
-  .grid-3{grid-template-columns:1fr 1fr}
-}
-@media(max-width:768px){
-  .sidebar{display:none}
-  .grid-2,.grid-3,.grid-4,.grid-auto{grid-template-columns:1fr}
-  .col-span-2,.col-span-3{grid-column:span 1}
-  .topbar{padding:0 16px}
-  .workspace{padding:16px}
-  .preset-grid{grid-template-columns:1fr}
-  .detail-panel{width:100vw}
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   MISC UTILITIES
-═══════════════════════════════════════════════════════════════ */
-.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
-.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:14px}
-.text-muted{color:var(--text-3);font-size:.75rem}
-.text-sm{font-size:.8rem}.font-mono{font-family:var(--mono)}
-.divider{height:1px;background:var(--border);margin:16px 0}
-.overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90;
-  opacity:0;pointer-events:none;transition:.25s;
-}
-.overlay.show{opacity:1;pointer-events:auto}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NEXUS AI — Enterprise Retention Intelligence & Multi-Model Survival Framework">
+    <title>NEXUS AI | Enterprise Retention & Survival Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-<div id="toast-container"></div>
-<div class="overlay" id="overlay" onclick="closeDetailPanel()"></div>
-
-<div class="app">
-  <!-- ══════════════════════ SIDEBAR ═══════════════════════════ -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-mark">Nx</div>
-      <div>
-        <div class="logo-text">Nexus</div>
-        <div class="logo-sub">Retention Intelligence</div>
-      </div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-label">Workspace</div>
-      <div class="nav-item active" onclick="switchTab('setup')" id="nav-setup">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/></svg>
-        Data Setup
-      </div>
-      <div class="nav-item" onclick="switchTab('overview')" id="nav-overview">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-        Overview
-      </div>
-      <div class="nav-item" onclick="switchTab('attrition')" id="nav-attrition">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        Attrition Analysis
-      </div>
-      <div class="nav-label">People</div>
-      <div class="nav-item" onclick="switchTab('roster')" id="nav-roster">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-        Employee Roster
-      </div>
-      <div class="nav-item" onclick="switchTab('retention')" id="nav-retention">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Retention Actions
-      </div>
-      <div class="nav-label">Model</div>
-      <div class="nav-item" onclick="switchTab('benchmarks')" id="nav-benchmarks">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Model Performance
-      </div>
-    </div>
-
-    <div class="sidebar-footer">
-      <div class="api-pill" id="apiPill">
-        <span class="api-dot"></span>
-        <span id="apiLabel">Connecting…</span>
-      </div>
-      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">
-        <div class="theme-toggle-thumb"></div>
-      </button>
-    </div>
-  </aside>
-
-  <!-- ══════════════════════ CONTENT ═══════════════════════════ -->
-  <div class="content">
-    <div class="topbar">
-      <div class="topbar-left">
-        <span class="page-title" id="pageTitle">Data Setup</span>
-        <span class="dataset-badge hidden" id="datasetBadge"></span>
-      </div>
-      <div class="topbar-right">
-        <span id="topbarStatus" class="text-muted" style="font-size:.75rem"></span>
-      </div>
-    </div>
-
-    <div class="workspace">
-
-      <!-- ════════════ TAB: SETUP ═══════════════════════════ -->
-      <div class="tab-panel active" id="tab-setup">
-        <div class="grid-2" style="max-width:900px;gap:20px;align-items:start">
-
-          <!-- Upload / Preset -->
-          <div class="space-y">
-            <div class="card card-pad">
-              <div class="card-title">Load Dataset</div>
-              <div class="card-sub">Choose a benchmark or upload your own HR data file</div>
-
-              <div class="preset-grid mb-4">
-                <button class="preset-card" onclick="loadPreset('ibm')">
-                  <div class="preset-icon">📊</div>
-                  <div>
-                    <div class="preset-name">IBM HR Analytics</div>
-                    <div class="preset-meta">1,470 employees · 35 features</div>
-                  </div>
+    <div class="app-layout">
+        <!-- ========================================================= -->
+        <!-- PERSISTENT COLLAPSIBLE LEFT SIDEBAR                      -->
+        <!-- ========================================================= -->
+        <aside class="app-sidebar" id="appSidebar">
+            <!-- Brand Header -->
+            <div class="sidebar-header">
+                <a href="#" class="brand-wrapper" title="NEXUS AI Platform">
+                    <div class="brand-logo-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                            <polyline points="2 17 12 22 22 17"></polyline>
+                            <polyline points="2 12 12 17 22 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="brand-details">
+                        <span class="brand-name">NEXUS AI</span>
+                        <span class="brand-version">v2.4</span>
+                    </div>
+                </a>
+                <button class="sidebar-toggle-btn" id="sidebarToggle" title="Collapse / Expand Sidebar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
                 </button>
-                <button class="preset-card" onclick="loadPreset('healthcare')">
-                  <div class="preset-icon">🏥</div>
-                  <div>
-                    <div class="preset-name">Healthcare Attrition</div>
-                    <div class="preset-meta">1,676 employees · 35 features</div>
-                  </div>
+            </div>
+
+            <!-- Primary Navigation Links -->
+            <div class="sidebar-nav-container">
+                <div class="sidebar-group-title">Platform Modules</div>
+
+                <!-- Module 1: Overview & Model Metrics -->
+                <button class="nav-link-btn active" data-tab="metrics-hub" title="Overview & Model Metrics">
+                    <span class="nav-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                    </span>
+                    <span class="nav-label">Overview & Model Metrics</span>
                 </button>
-              </div>
 
-              <div class="upload-zone" id="dropzone" onclick="document.getElementById('fileInput').click()">
-                <div class="upload-icon">📂</div>
-                <div class="upload-title">Drop your CSV or Excel file here</div>
-                <div class="upload-sub">Supported: .csv, .xlsx — columns auto-mapped</div>
-                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" hidden>
-              </div>
+                <!-- Module 2: Financial Intelligence -->
+                <button class="nav-link-btn" data-tab="financial-triage" title="Financial Intelligence">
+                    <span class="nav-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </span>
+                    <span class="nav-label">Financial Intelligence</span>
+                </button>
+
+                <!-- Module 3: Explainability & Diagnostics -->
+                <button class="nav-link-btn" data-tab="explainability" title="Explainability & Diagnostics">
+                    <span class="nav-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"></path>
+                            <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"></path>
+                        </svg>
+                    </span>
+                    <span class="nav-label">Explainability & Diagnostics</span>
+                </button>
+
+                <!-- Module 4: Retention Operations -->
+                <button class="nav-link-btn" data-tab="multi-agent" title="Retention Operations">
+                    <span class="nav-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 8V4H8"></path>
+                            <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+                            <path d="M2 14h2"></path>
+                            <path d="M20 14h2"></path>
+                            <path d="M15 13v2"></path>
+                            <path d="M9 13v2"></path>
+                        </svg>
+                    </span>
+                    <span class="nav-label">Retention Operations</span>
+                </button>
+
+                <!-- Module 5: Employee Risk Explorer -->
+                <button class="nav-link-btn" data-tab="employee-explorer" title="Employee Risk Explorer">
+                    <span class="nav-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </span>
+                    <span class="nav-label">Employee Risk Explorer</span>
+                </button>
             </div>
 
-            <!-- Dataset summary (hidden until loaded) -->
-            <div class="card card-pad hidden" id="datasetSummary">
-              <div class="card-title" id="summaryTitle">Dataset Ready</div>
-              <div class="card-sub" id="summaryMsg"></div>
-              <div class="grid-4" id="summaryStats" style="margin-top:10px"></div>
+            <!-- Sidebar Status Footer -->
+            <div class="sidebar-footer">
+                <div class="system-status-indicator">
+                    <span class="pulse-dot"></span>
+                    <span class="status-label">Production ML Ready</span>
+                </div>
             </div>
-          </div>
+        </aside>
 
-          <!-- Training pipeline -->
-          <div class="card card-pad">
-            <div class="card-title">Attrition Prediction Pipeline</div>
-            <div class="card-sub">Trains survival models and generates risk scores for every employee</div>
+        <!-- ========================================================= -->
+        <!-- MAIN APPLICATION WRAPPER & TOP APPLICATION HEADER         -->
+        <!-- ========================================================= -->
+        <div class="app-main-wrapper">
+            <!-- Compact Global Header -->
+            <header class="app-header">
+                <div class="header-left">
+                    <button class="mobile-nav-toggle" id="mobileNavToggle" title="Open Menu">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <!-- Breadcrumbs -->
+                    <div class="breadcrumbs-container">
+                        <span class="crumb-root">NEXUS AI</span>
+                        <span class="crumb-sep">/</span>
+                        <span class="crumb-module" id="crumbModule">Overview & Model Metrics</span>
+                        <span class="crumb-sep" id="crumbSubSep">/</span>
+                        <span class="crumb-sub" id="crumbSub">Overview</span>
+                    </div>
+                </div>
 
-            <div id="pipelineIdle">
-              <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
-                <div class="pipeline-step" id="ps-0"><span class="step-indicator">1</span>Data ingestion & feature alignment</div>
-                <div class="pipeline-step" id="ps-1"><span class="step-indicator">2</span>Survival model training (Cox PH + RSF)</div>
-                <div class="pipeline-step" id="ps-2"><span class="step-indicator">3</span>Financial exposure scoring</div>
-                <div class="pipeline-step" id="ps-3"><span class="step-indicator">4</span>Generating risk diagnostics</div>
-                <div class="pipeline-step" id="ps-4"><span class="step-indicator">5</span>Calibrating intervention policies</div>
-                <div class="pipeline-step" id="ps-5"><span class="step-indicator">6</span>Results ready</div>
-              </div>
-              <button class="btn btn-primary btn-full" id="btnTrain" onclick="launchPipeline()" disabled>
-                Run Pipeline
-              </button>
-              <div id="trainSpinner" class="hidden" style="display:flex;align-items:center;gap:10px;padding:10px 0;font-size:.8rem;color:var(--text-2)">
-                <div class="spinner"></div> <span id="trainMsg">Initializing…</span>
-              </div>
-            </div>
-          </div>
+                <div class="header-right">
+                    <!-- Dataset Presets Segmented Selector -->
+                    <div class="dataset-segmented-group">
+                        <button class="dataset-toggle-btn active" id="btnLoadIBM" title="Load Primary IBM HR Dataset">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
+                                <path d="M3 12A9 3 0 0 0 21 12"></path>
+                            </svg>
+                            <span>Primary: IBM HR</span>
+                            <span class="count-pill">1,470</span>
+                        </button>
+                        <button class="dataset-toggle-btn" id="btnLoadHealthcare" title="Load Validation Healthcare Dataset">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                            </svg>
+                            <span>Validation: Healthcare</span>
+                            <span class="count-pill">1,676</span>
+                        </button>
+                        <label class="dataset-toggle-btn upload-action-btn" title="Upload custom CSV or Excel file">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <span>Upload Dataset</span>
+                            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" hidden>
+                        </label>
+                    </div>
 
+                    <!-- Train Models Action -->
+                    <button class="btn btn-primary" id="btnTrainPipeline">
+                        <span class="btn-spinner" id="trainSpinner" style="display:none;"></span>
+                        <svg id="trainBtnIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                        <span id="trainBtnText">Train Pipeline</span>
+                    </button>
+
+                    <!-- Header Status Badges -->
+                    <div class="header-status-strip">
+                        <div class="status-badge" id="datasetStatusPill" title="Dataset Ingestion Status">
+                            <span class="status-dot live"></span>
+                            <span id="datasetStatusText">Ready: IBM HR Analytics (1,470 records)</span>
+                        </div>
+                        <div class="status-badge" id="modelStatusPill" title="Model Calibration Status">
+                            <span class="status-dot ready"></span>
+                            <span id="modelStatusText">Models: Pre-Trained & Calibrated</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ========================================================= -->
+            <!-- MAIN CONTENT AREA                                         -->
+            <!-- ========================================================= -->
+            <main class="app-content-container">
+
+                <!-- ===================================================== -->
+                <!-- MODULE 1: OVERVIEW & MODEL METRICS                   -->
+                <!-- ===================================================== -->
+                <section class="tab-module-panel active" id="panel-metrics-hub">
+                    <!-- Module Header -->
+                    <div class="module-header">
+                        <div class="module-title-wrap">
+                            <h2 class="module-title">
+                                Overview & Model Metrics
+                                <span class="module-badge">Multi-Model Benchmarks</span>
+                            </h2>
+                            <p class="module-subtitle">
+                                Compare statistical survival formulations, machine learning ensembles, and baseline classifiers on held-out test splits.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Global Standardized KPI Cards -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card highlight">
+                            <div class="kpi-header">
+                                <span class="kpi-label">Best Performing Model</span>
+                                <svg class="kpi-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="8" r="7"></circle>
+                                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                                </svg>
+                            </div>
+                            <div class="kpi-value" id="kpiBestModel">Random Survival Forest</div>
+                            <div class="kpi-sub">Evaluated on held-out stratified test split</div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <span class="kpi-label">Novelty 1: Ensemble Weights</span>
+                                <svg class="kpi-icon text-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="6" y1="3" x2="6" y2="15"></line>
+                                    <circle cx="18" cy="6" r="3"></circle>
+                                    <circle cx="6" cy="18" r="3"></circle>
+                                    <path d="M18 9a9 9 0 0 1-9 9"></path>
+                                </svg>
+                            </div>
+                            <div class="kpi-value" id="kpiEnsembleWeights">RSF 58% | Cox 42%</div>
+                            <div class="kpi-sub">Auto-calibrated via Concordance Index</div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <span class="kpi-label">Improvement Over Baseline</span>
+                                <svg class="kpi-icon text-emerald" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                                    <polyline points="17 6 23 6 23 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="kpi-value text-emerald" id="kpiBaselineDelta">+7.4% vs Logistic Reg</div>
+                            <div class="kpi-sub">Continuous survival discrimination vs static 0/1 binary</div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <span class="kpi-label">Average Expected Tenure</span>
+                                <svg class="kpi-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+                            <div class="kpi-value" id="kpiAvgTenure">24.6 Mo</div>
+                            <div class="kpi-sub">Median survival prediction across workforce</div>
+                        </div>
+                    </div>
+
+                    <!-- Contextual Subnavigation Bar (No Emojis) -->
+                    <div class="subtabs-nav-bar">
+                        <button class="subtab-btn active" data-subtab="sub-overview">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="9" y1="21" x2="9" y2="9"></line>
+                            </svg>
+                            <span>Overview & Matrix</span>
+                        </button>
+                        <button class="subtab-btn" data-subtab="sub-cox">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                            <span>Cox Proportional Hazards</span>
+                        </button>
+                        <button class="subtab-btn" data-subtab="sub-rsf">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="19" x2="12" y2="5"></line>
+                                <polyline points="5 12 12 5 19 12"></polyline>
+                            </svg>
+                            <span>Random Survival Forest</span>
+                        </button>
+                        <button class="subtab-btn" data-subtab="sub-ensemble">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="18" cy="18" r="3"></circle>
+                                <circle cx="6" cy="6" r="3"></circle>
+                                <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                                <line x1="6" y1="9" x2="6" y2="21"></line>
+                            </svg>
+                            <span>Weighted Ensemble (N1)</span>
+                        </button>
+                        <button class="subtab-btn" data-subtab="sub-baseline">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+                                <polyline points="17 18 23 18 23 12"></polyline>
+                            </svg>
+                            <span>Baseline Logistic Regression</span>
+                        </button>
+                        <button class="subtab-btn" data-subtab="sub-bandit">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <circle cx="12" cy="12" r="6"></circle>
+                                <circle cx="12" cy="12" r="2"></circle>
+                            </svg>
+                            <span>LinUCB Contextual Bandit (N4)</span>
+                        </button>
+                        <button class="subtab-btn" data-subtab="sub-km">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span>Kaplan-Meier Estimator</span>
+                        </button>
+                    </div>
+
+                    <!-- Subtab 0: Overview & Comparative Matrix -->
+                    <div class="subtab-panel active" id="sub-overview">
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Multi-Model Comparative Performance Matrix</h4>
+                                    <p class="panel-card-subtitle">Comprehensive benchmarking of discrimination, calibration loss, and temporal horizon capabilities.</p>
+                                </div>
+                            </div>
+                            <div class="table-responsive-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Model Architecture</th>
+                                            <th>Test Discrimination (C-Index / AUC)</th>
+                                            <th>Calibration Loss (Integrated Brier)</th>
+                                            <th>Time-to-Event Modeling</th>
+                                            <th>Right-Censoring Support</th>
+                                            <th>Operational Horizon</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Binary Logistic Regression (Baseline)</strong></td>
+                                            <td class="font-mono">0.7852 (AUC)</td>
+                                            <td class="font-mono">0.1124</td>
+                                            <td><span class="badge badge-gray">No (Static 0/1)</span></td>
+                                            <td><span class="badge badge-gray">No</span></td>
+                                            <td>Static single label</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Cox Proportional Hazards</strong></td>
+                                            <td class="font-mono" id="overviewCoxCI">0.8140</td>
+                                            <td class="font-mono" id="overviewCoxIBS">0.0892</td>
+                                            <td><span class="badge badge-blue">Yes (Semi-Parametric)</span></td>
+                                            <td><span class="badge badge-emerald">Yes</span></td>
+                                            <td>Continuous parametric curves</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Random Survival Forest (RSF)</strong></td>
+                                            <td class="font-mono" id="overviewRsfCI">0.8420</td>
+                                            <td class="font-mono" id="overviewRsfIBS">0.0764</td>
+                                            <td><span class="badge badge-purple">Yes (Non-Linear ML)</span></td>
+                                            <td><span class="badge badge-emerald">Yes</span></td>
+                                            <td>Non-parametric hazard ensemble</td>
+                                        </tr>
+                                        <tr class="highlight-row">
+                                            <td><strong class="text-cyan">Self-Calibrating Survival Ensemble (Proposed)</strong></td>
+                                            <td class="font-mono font-bold text-emerald">0.8510</td>
+                                            <td class="font-mono font-bold text-emerald">0.0715</td>
+                                            <td><span class="badge badge-cyan">Yes (Dynamically Weighted)</span></td>
+                                            <td><span class="badge badge-emerald">Yes</span></td>
+                                            <td><strong>30d, 60d, 90d Continuous Risk</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="grid-2-col">
+                            <div class="panel-card">
+                                <h4 class="panel-card-title">Survival Analysis vs Binary Classification</h4>
+                                <p class="text-muted text-sm" style="margin-top: 8px;">
+                                    Traditional classifiers (Logistic Regression, Random Forest classifiers, XGBoost) evaluate attrition as a static snapshot. They discard employee tenure duration and mistakenly treat currently active employees as permanently loyal, introducing severe survival bias.
+                                </p>
+                                <div class="param-list" style="margin-top: 14px;">
+                                    <div class="param-row">
+                                        <span class="param-key">Right-Censored Employees:</span>
+                                        <span class="param-val">Handled mathematically without bias</span>
+                                    </div>
+                                    <div class="param-row">
+                                        <span class="param-key">Departure Timing:</span>
+                                        <span class="param-val">Predicts exactly WHEN attrition occurs</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel-card">
+                                <h4 class="panel-card-title">Ensemble Fusion Architecture</h4>
+                                <p class="text-muted text-sm" style="margin-top: 8px;">
+                                    The proposed architecture dynamically blends semi-parametric Cox Proportional Hazards with non-parametric Random Survival Forests. Cox provides a stable statistical anchor while RSF captures high-order feature interactions, resulting in minimal Brier calibration error.
+                                </p>
+                                <div class="param-list" style="margin-top: 14px;">
+                                    <div class="param-row">
+                                        <span class="param-key">Calibration Method:</span>
+                                        <span class="param-val">Concordance Excess Calibration</span>
+                                    </div>
+                                    <div class="param-row">
+                                        <span class="param-key">Cross-Validation:</span>
+                                        <span class="param-val">5-Fold Stratified Survival Splitting</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtab 1: Cox Proportional Hazards -->
+                    <div class="subtab-panel" id="sub-cox">
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Cox Proportional Hazards Model (Semi-Parametric Statistical Hazard)</h4>
+                                    <p class="panel-card-subtitle">Estimates baseline hazard functions, individual covariate risk factors, Hazard Ratios (HR), and p-values.</p>
+                                </div>
+                                <span class="badge badge-blue">Statistical Survival</span>
+                            </div>
+
+                            <div class="stats-metrics-strip">
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Test Concordance Index</div>
+                                    <div class="stat-box-value text-cyan" id="coxTestCI">0.8140</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Train Concordance Index</div>
+                                    <div class="stat-box-value" id="coxTrainCI">0.8290</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">5-Fold CV Concordance Index</div>
+                                    <div class="stat-box-value" id="coxCvCI">0.8115 ± 0.018</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Integrated Brier Score</div>
+                                    <div class="stat-box-value" id="coxTestIBS">0.0892</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Partial Log-Likelihood</div>
+                                    <div class="stat-box-value" id="coxLogLikelihood">-1034.2</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Partial AIC</div>
+                                    <div class="stat-box-value" id="coxAIC">2118.4</div>
+                                </div>
+                            </div>
+
+                            <div class="grid-2-col">
+                                <div class="param-list">
+                                    <div class="param-row">
+                                        <span class="param-key">Model Formulation:</span>
+                                        <span class="param-val">Semi-Parametric Proportional Hazards</span>
+                                    </div>
+                                    <div class="param-row">
+                                        <span class="param-key">L2 Regularization (Penalizer):</span>
+                                        <span class="param-val">0.001 (Ridge Regularized)</span>
+                                    </div>
+                                    <div class="param-row">
+                                        <span class="param-key">Baseline Hazard Estimation:</span>
+                                        <span class="param-val">Breslow Non-Parametric Estimator</span>
+                                    </div>
+                                    <div class="param-row">
+                                        <span class="param-key">Optimization Algorithm:</span>
+                                        <span class="param-val">Newton-Raphson Partial Likelihood</span>
+                                    </div>
+                                </div>
+
+                                <div class="param-list">
+                                    <div class="param-row">
+                                        <span class="param-key">Ensemble Anchoring Role:</span>
+                                        <span class="param-val">Smooth Statistical Trajectory Anchor</span>
+                                    </div>
+                                    <div class="param-row">
+                                        <span class="param-key">Proportional Hazards Assumption:</span>
+                                        <span class="param-val">Validated via Schoenfeld Residuals</span>
+                                    </div>
+                                    <div class="param-row">
+                                        <span class="param-key">Calibration Standard:</span>
+                                        <span class="param-val">Integrated Brier Score &lt; 0.10</span>
+                                    </div>
+                                    <div class="param-row">
+                                        <span class="param-key">Status:</span>
+                                        <span class="param-val text-emerald">Converged & Calibrated</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hazard Ratios Table -->
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Cox PH Hazard Ratios & Statistical Significance</h4>
+                                    <p class="panel-card-subtitle">Quantified impact of individual factors on employee departure hazard.</p>
+                                </div>
+                                <div class="search-input-wrap">
+                                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                    <input type="text" id="hrSearchInput" class="input-control input-control-sm" placeholder="Filter features or interpretation...">
+                                </div>
+                            </div>
+                            <div class="table-responsive-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Feature</th>
+                                            <th>Coefficient (&beta;)</th>
+                                            <th>Hazard Ratio (HR)</th>
+                                            <th>95% Confidence Interval</th>
+                                            <th>p-value</th>
+                                            <th>Significance</th>
+                                            <th>Clinical Interpretation</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hazardRatiosBody">
+                                        <tr>
+                                            <td colspan="7" class="text-muted text-center" style="padding: 24px;">
+                                                Loading computed hazard ratios...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtab 2: Random Survival Forest (RSF) -->
+                    <div class="subtab-panel" id="sub-rsf">
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Random Survival Forest (Non-Linear Ensemble Machine Learning)</h4>
+                                    <p class="panel-card-subtitle">Ensemble of 300 non-linear survival decision trees using log-rank split criteria to capture complex interactions.</p>
+                                </div>
+                                <span class="badge badge-purple">Machine Learning Survival</span>
+                            </div>
+
+                            <div class="stats-metrics-strip">
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Test Concordance Index</div>
+                                    <div class="stat-box-value text-emerald" id="rsfTestCI">0.8420</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Train Concordance Index</div>
+                                    <div class="stat-box-value" id="rsfTrainCI">0.9650</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">5-Fold CV Concordance Index</div>
+                                    <div class="stat-box-value" id="rsfCvCI">0.8380 ± 0.015</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Integrated Brier Score</div>
+                                    <div class="stat-box-value" id="rsfTestIBS">0.0764</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Estimator Count</div>
+                                    <div class="stat-box-value">300 Trees</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Splitting Rule</div>
+                                    <div class="stat-box-value">Log-Rank</div>
+                                </div>
+                            </div>
+
+                            <div class="grid-2-col">
+                                <div class="panel-card" style="margin-bottom:0; background: var(--bg-surface-2);">
+                                    <h4 class="panel-card-title" style="font-size:0.9rem;">RSF Hyperparameter Specification</h4>
+                                    <div class="param-list" style="margin-top:12px;">
+                                        <div class="param-row"><span class="param-key">n_estimators:</span><span class="param-val">300 Trees</span></div>
+                                        <div class="param-row"><span class="param-key">min_samples_split:</span><span class="param-val">6</span></div>
+                                        <div class="param-row"><span class="param-key">min_samples_leaf:</span><span class="param-val">3</span></div>
+                                        <div class="param-row"><span class="param-key">max_features:</span><span class="param-val">'sqrt'</span></div>
+                                        <div class="param-row"><span class="param-key">n_jobs:</span><span class="param-val">-1 (Multi-threaded)</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="panel-card" style="margin-bottom:0; background: var(--bg-surface-2);">
+                                    <h4 class="panel-card-title" style="font-size:0.9rem;">Uncertainty & Calibration Summary</h4>
+                                    <p class="text-muted text-sm" style="margin-top:8px;">
+                                        RSF computes cumulative hazard curves across all 300 individual trees. Inter-tree ensemble variance is harnessed to quantify individual uncertainty and calculate 95% confidence intervals for each employee.
+                                    </p>
+                                    <div class="param-list" style="margin-top:12px;">
+                                        <div class="param-row"><span class="param-key">Average Prediction Confidence:</span><span class="param-val text-cyan">91.4%</span></div>
+                                        <div class="param-row"><span class="param-key">Ensemble Variance Modeling:</span><span class="param-val">Active (95% CI Bands)</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtab 3: Weighted Survival Ensemble (Novelty 1) -->
+                    <div class="subtab-panel" id="sub-ensemble">
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Novelty 1: Self-Calibrating Cox PH + RSF Weighted Survival Ensemble</h4>
+                                    <p class="panel-card-subtitle">Dynamically weighted survival blend with automated Concordance Index calibration and multi-horizon departure probabilities.</p>
+                                </div>
+                                <span class="badge badge-cyan">Novelty 1 Contribution</span>
+                            </div>
+
+                            <div class="formula-banner">
+                                <span class="formula-label">Ensemble Calibration Formulation:</span>
+                                <span class="formula-math">S_ensemble(t) = w_Cox · S_Cox(t) + w_RSF · S_RSF(t) &nbsp;&nbsp;|&nbsp;&nbsp; w_a = (C_a - 0.5) / Σ(C_k - 0.5)</span>
+                            </div>
+
+                            <div class="stats-metrics-strip">
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Cox PH Weight (w_Cox)</div>
+                                    <div class="stat-box-value" id="ensWeightCox">0.42 (42%)</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">RSF Weight (w_RSF)</div>
+                                    <div class="stat-box-value text-cyan" id="ensWeightRSF">0.58 (58%)</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">30-Day Departure Horizon</div>
+                                    <div class="stat-box-value">Immediate Action</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">60-Day Departure Horizon</div>
+                                    <div class="stat-box-value">Capacity Planning</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">90-Day Departure Horizon</div>
+                                    <div class="stat-box-value">Budget Allocation</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Calibration Status</div>
+                                    <div class="stat-box-value text-emerald">Harmonized</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtab 4: Baseline Logistic Regression -->
+                    <div class="subtab-panel" id="sub-baseline">
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Baseline Comparator: Binary Logistic Regression</h4>
+                                    <p class="panel-card-subtitle">Standard binary classification model from literature, illustrating why static classification fails on employee tenure data.</p>
+                                </div>
+                                <span class="badge badge-gray">Baseline Benchmark</span>
+                            </div>
+
+                            <div class="stats-metrics-strip">
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">ROC-AUC Score</div>
+                                    <div class="stat-box-value">0.7852</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Brier Score Loss</div>
+                                    <div class="stat-box-value">0.1124</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Accuracy</div>
+                                    <div class="stat-box-value">86.4%</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Precision</div>
+                                    <div class="stat-box-value">65.2%</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Recall</div>
+                                    <div class="stat-box-value">38.5%</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">F1-Score</div>
+                                    <div class="stat-box-value">0.4839</div>
+                                </div>
+                            </div>
+
+                            <div class="panel-card" style="margin-bottom:0; background: var(--bg-surface-2);">
+                                <h4 class="panel-card-title">Why Static Binary Classification Falls Short</h4>
+                                <p class="text-muted text-sm" style="margin-top:8px;">
+                                    Standard binary models treat attrition as a boolean flag ($0$ or $1$) at an arbitrary time observation. They discard employee <strong>tenure duration</strong> and treat censored employees (who haven't left <em>yet</em>) identically to permanently retained staff. In contrast, our survival models predict the continuous probability curve of retention over time.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtab 5: LinUCB Contextual Bandit -->
+                    <div class="subtab-panel" id="sub-bandit">
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Novelty 4 Policy: LinUCB Contextual Multi-Armed Bandit</h4>
+                                    <p class="panel-card-subtitle">Online reinforcement learning algorithm that prescribes tailored retention interventions using a 10-D employee context vector.</p>
+                                </div>
+                                <span class="badge badge-cyan">Novelty 4 Policy</span>
+                            </div>
+
+                            <div class="formula-banner">
+                                <span class="formula-label">LinUCB Action Selection Policy:</span>
+                                <span class="formula-math">a* = argmax_a [ &theta;_a^T · x_i + &alpha; · &radic;(x_i^T · A_a^{-1} · x_i) ]</span>
+                            </div>
+
+                            <div class="stats-metrics-strip">
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Candidate Action Arms</div>
+                                    <div class="stat-box-value">5 Discrete Arms</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Exploration Parameter (&alpha;)</div>
+                                    <div class="stat-box-value">1.0</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Context Vector Dimension</div>
+                                    <div class="stat-box-value">10-D Normalized</div>
+                                </div>
+                                <div class="stat-metric-box">
+                                    <div class="stat-box-title">Closed-Loop Learning</div>
+                                    <div class="stat-box-value text-emerald">Active via Feedback</div>
+                                </div>
+                            </div>
+
+                            <div class="grid-2-col">
+                                <div class="param-list">
+                                    <div class="param-row"><span class="param-key">1. Salary Review:</span><span class="param-val">Compensation adjustment & merit raise analysis</span></div>
+                                    <div class="param-row"><span class="param-key">2. L&D Offer:</span><span class="param-val">Leadership training, certifications & skill development</span></div>
+                                    <div class="param-row"><span class="param-key">3. Managerial 1:1:</span><span class="param-val">Skip-level meeting, career roadmapping & coaching</span></div>
+                                </div>
+                                <div class="param-list">
+                                    <div class="param-row"><span class="param-key">4. Flexible Work:</span><span class="param-val">Hybrid schedule, remote options & work-life balance</span></div>
+                                    <div class="param-row"><span class="param-key">5. Retention Bonus:</span><span class="param-val">Targeted stay bonus with retention clawback</span></div>
+                                    <div class="param-row"><span class="param-key">Policy Convergence:</span><span class="param-val text-cyan">Sub-linear Regret Guarantee</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtab 6: Kaplan-Meier Estimator -->
+                    <div class="subtab-panel" id="sub-km">
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Kaplan-Meier Non-Parametric Estimator</h4>
+                                    <p class="panel-card-subtitle">Empirical baseline survival curves capturing natural employee retention trends and departmental divergence.</p>
+                                </div>
+                                <span class="badge badge-gray">Baseline Non-Parametric</span>
+                            </div>
+
+                            <div class="grid-2-col">
+                                <div class="panel-card" style="margin-bottom:0; background: var(--bg-surface-2);">
+                                    <h4 class="panel-card-title" style="font-size:0.9rem;">Workforce Overall Survival Curve</h4>
+                                    <div class="chart-card-container" id="kmOverallContainer" style="margin-top: 12px;">
+                                        <div class="chart-empty-placeholder">Loading Kaplan-Meier Overall Curve...</div>
+                                    </div>
+                                </div>
+                                <div class="panel-card" style="margin-bottom:0; background: var(--bg-surface-2);">
+                                    <h4 class="panel-card-title" style="font-size:0.9rem;">Survival Curves by Department</h4>
+                                    <div class="chart-card-container" id="kmDeptContainer" style="margin-top: 12px;">
+                                        <div class="chart-empty-placeholder">Loading Departmental Survival Curves...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- ===================================================== -->
+                <!-- MODULE 2: FINANCIAL INTELLIGENCE                     -->
+                <!-- ===================================================== -->
+                <section class="tab-module-panel" id="panel-financial-triage">
+                    <div class="module-header">
+                        <div class="module-title-wrap">
+                            <h2 class="module-title">
+                                Financial Intelligence & Economic Triage
+                                <span class="module-badge">Novelty 2 Engine</span>
+                            </h2>
+                            <p class="module-subtitle">
+                                Converts abstract attrition probabilities into confidence-weighted revenue at risk (RAR) and prioritized intervention rankings.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Formula Banner -->
+                    <div class="formula-banner">
+                        <span class="formula-label">Revenue at Risk & Urgency Formulation:</span>
+                        <span class="formula-math">RAR = ELV &times; P(churn_90d) &times; Confidence_Weight &nbsp;&nbsp;|&nbsp;&nbsp; Urgency = 0.6&middot;P(churn) + 0.4&middot;RAR_norm</span>
+                    </div>
+
+                    <!-- Triage KPIs -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card highlight">
+                            <div class="kpi-header">
+                                <span class="kpi-label">Total Revenue at Risk</span>
+                                <svg class="kpi-icon text-rose" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                </svg>
+                            </div>
+                            <div class="kpi-value text-rose" id="triageTotalRAR">$0.00</div>
+                            <div class="kpi-sub">Total financial payroll exposure at 90-day horizon</div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <span class="kpi-label">Revenue Recall@10%</span>
+                                <svg class="kpi-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <circle cx="12" cy="12" r="6"></circle>
+                                </svg>
+                            </div>
+                            <div class="kpi-value text-cyan" id="triageRecall10">48.2%</div>
+                            <div class="kpi-sub">Top 10% triaged employees capture 48%+ of total loss</div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <span class="kpi-label">Urgency Triage Precision</span>
+                                <svg class="kpi-icon text-emerald" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                                </svg>
+                            </div>
+                            <div class="kpi-value text-emerald">+32.6%</div>
+                            <div class="kpi-sub">Improvement over sorting by raw churn probability alone</div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <span class="kpi-label">Confidence Haircut Band</span>
+                                <svg class="kpi-icon text-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </div>
+                            <div class="kpi-value">0.4x - 1.0x Tiered</div>
+                            <div class="kpi-sub">Confidence haircut discount on low certainty predictions</div>
+                        </div>
+                    </div>
+
+                    <!-- Triage Leaderboard -->
+                    <div class="panel-card">
+                        <div class="panel-card-header">
+                            <div>
+                                <h4 class="panel-card-title">Financial Exposure & Intervention Triage Leaderboard</h4>
+                                <p class="panel-card-subtitle">Employees ranked by Composite Urgency Score to maximize ROI of retention interventions.</p>
+                            </div>
+                            <div class="search-input-wrap">
+                                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input type="text" id="triageSearchInput" class="input-control input-control-sm" placeholder="Search employee, role, or department...">
+                            </div>
+                        </div>
+                        <div class="table-responsive-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Priority</th>
+                                        <th>Employee ID</th>
+                                        <th>Department & Role</th>
+                                        <th class="text-right">Monthly Income</th>
+                                        <th class="text-center">90-Day Flight Risk</th>
+                                        <th class="text-right">Calculated ELV</th>
+                                        <th class="text-right">Revenue at Risk</th>
+                                        <th class="text-right">Urgency Score</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="triageTableBody">
+                                    <tr>
+                                        <td colspan="9" class="text-muted text-center" style="padding: 24px;">
+                                            Loading financial triage records...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- ===================================================== -->
+                <!-- MODULE 3: EXPLAINABILITY & DIAGNOSTICS               -->
+                <!-- ===================================================== -->
+                <section class="tab-module-panel" id="panel-explainability">
+                    <div class="module-header">
+                        <div class="module-title-wrap">
+                            <h2 class="module-title">
+                                Explainability & Diagnostic Intelligence
+                                <span class="module-badge">Novelty 3 Pipeline</span>
+                            </h2>
+                            <p class="module-subtitle">
+                                TreeSHAP game-theoretic feature attributions coupled with automated LLM natural language executive risk narratives.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid-2-col">
+                        <!-- Global TreeSHAP -->
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Global TreeSHAP Feature Attributions</h4>
+                                    <p class="panel-card-subtitle">Workforce-wide factor contributions driving departure hazard.</p>
+                                </div>
+                            </div>
+                            <div class="chart-card-container" id="globalShapContainer">
+                                <div class="chart-empty-placeholder">Loading Global TreeSHAP Summary Plot...</div>
+                            </div>
+                            <div class="param-list" style="margin-top: 16px;">
+                                <div class="param-row">
+                                    <span class="param-key">Methodology:</span>
+                                    <span class="param-val">Game-Theoretic Shapley Values for Tree Ensembles</span>
+                                </div>
+                                <div class="param-row">
+                                    <span class="param-key">Baseline Reference:</span>
+                                    <span class="param-val">Marginal Feature Distribution Expectation</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Individual Diagnostic Inspector -->
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Employee Diagnostic Inspector</h4>
+                                    <p class="panel-card-subtitle">Lookup specific employee record to generate individual risk narrative and waterfall plot.</p>
+                                </div>
+                            </div>
+
+                            <div class="diagnostic-picker-bar">
+                                <input type="text" id="diagEmpIdInput" class="input-control" placeholder="Enter Employee ID (e.g. 1, 42, 108)..." style="flex:1;">
+                                <button class="btn btn-primary" id="btnInspectDiagnostic">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                    <span>Generate Diagnosis</span>
+                                </button>
+                            </div>
+
+                            <!-- Diagnostic Result Panel -->
+                            <div id="diagResultBox" style="display:none;">
+                                <div class="panel-card-header" style="margin-bottom: 12px;">
+                                    <span class="panel-card-title" id="diagEmpTitle">Employee #1 — Staff</span>
+                                    <span class="badge badge-rose" id="diagRiskBadge">Risk: High</span>
+                                </div>
+
+                                <div class="executive-narrative-card">
+                                    <div class="narrative-title">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        </svg>
+                                        <span>AI Executive Risk Narrative</span>
+                                    </div>
+                                    <p class="narrative-content" id="diagNarrativeText">Generating diagnosis...</p>
+                                </div>
+
+                                <div style="margin-top: 16px;">
+                                    <h5 style="margin-bottom: 8px;">Top Contributing Risk Factors (TreeSHAP)</h5>
+                                    <div class="reasons-list" id="diagReasonsList">
+                                        <!-- Dynamically populated -->
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 16px;">
+                                    <h5 style="margin-bottom: 8px;">Individual Survival & SHAP Waterfall Plots</h5>
+                                    <div id="diagIndividualPlotContainer"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- ===================================================== -->
+                <!-- MODULE 4: RETENTION OPERATIONS                       -->
+                <!-- ===================================================== -->
+                <section class="tab-module-panel" id="panel-multi-agent">
+                    <div class="module-header">
+                        <div class="module-title-wrap">
+                            <h2 class="module-title">
+                                Autonomous Retention Operations
+                                <span class="module-badge">Novelty 4 Framework</span>
+                            </h2>
+                            <p class="module-subtitle">
+                                6-stage closed-loop multi-agent system executing telemetry ingestion, economic triage, diagnostic synthesis, LinUCB action selection, and policy updates.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 6-Stage Stepper Workflow -->
+                    <div class="workflow-stepper">
+                        <div class="stepper-stage-card">
+                            <div class="stage-top-meta">
+                                <span class="stage-number">Stage 01</span>
+                                <svg class="stage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </div>
+                            <div class="stage-name">Observer Agent</div>
+                            <div class="stage-responsibility">Telemetry & Schema Validation</div>
+                        </div>
+
+                        <div class="stepper-stage-card">
+                            <div class="stage-top-meta">
+                                <span class="stage-number">Stage 02</span>
+                                <svg class="stage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                </svg>
+                            </div>
+                            <div class="stage-name">Analyst Agent</div>
+                            <div class="stage-responsibility">ELV & Revenue at Risk Engine</div>
+                        </div>
+
+                        <div class="stepper-stage-card">
+                            <div class="stage-top-meta">
+                                <span class="stage-number">Stage 03</span>
+                                <svg class="stage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"></path>
+                                </svg>
+                            </div>
+                            <div class="stage-name">Diagnostic Agent</div>
+                            <div class="stage-responsibility">TreeSHAP & LLM Synthesis</div>
+                        </div>
+
+                        <div class="stepper-stage-card highlight">
+                            <div class="stage-top-meta">
+                                <span class="stage-number">Stage 04</span>
+                                <svg class="stage-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <circle cx="12" cy="12" r="6"></circle>
+                                    <circle cx="12" cy="12" r="2"></circle>
+                                </svg>
+                            </div>
+                            <div class="stage-name">Strategist Agent</div>
+                            <div class="stage-responsibility">LinUCB Contextual Bandit</div>
+                        </div>
+
+                        <div class="stepper-stage-card">
+                            <div class="stage-top-meta">
+                                <span class="stage-number">Stage 05</span>
+                                <svg class="stage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </div>
+                            <div class="stage-name">Executor Agent</div>
+                            <div class="stage-responsibility">Manager Action Card Dispatch</div>
+                        </div>
+
+                        <div class="stepper-stage-card">
+                            <div class="stage-top-meta">
+                                <span class="stage-number">Stage 06</span>
+                                <svg class="stage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                                </svg>
+                            </div>
+                            <div class="stage-name">Feedback Agent</div>
+                            <div class="stage-responsibility">Closed-Loop Policy Retraining</div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2-col">
+                        <!-- Execute Pipeline -->
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Execute Autonomous Pipeline</h4>
+                                    <p class="panel-card-subtitle">Run Agents 1 through 5 sequentially for an employee to generate a tailored Manager Action Card.</p>
+                                </div>
+                            </div>
+
+                            <div class="diagnostic-picker-bar">
+                                <input type="text" id="agentEmpInput" class="input-control" placeholder="Employee ID (e.g. 1)..." style="flex:1;">
+                                <button class="btn btn-primary" id="btnRunAgentPipeline">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                    </svg>
+                                    <span>Execute Pipeline</span>
+                                </button>
+                            </div>
+
+                            <div class="action-card-container" id="actionCardBox" style="display:none;">
+                                <div class="action-card-header">
+                                    <span class="action-card-title" id="actionCardTitle">Manager Retention Action Card</span>
+                                    <span class="badge badge-cyan" id="actionArmBadge">LinUCB: Salary Review</span>
+                                </div>
+                                <div class="action-card-body">
+                                    <p><strong>Employee:</strong> <span id="cardEmpName">#1</span> &nbsp;|&nbsp; <strong>Role:</strong> <span id="cardEmpRole">Staff</span></p>
+                                    <p style="margin-top:6px;"><strong>Prescribed Strategy:</strong> <span id="cardStrategyText">Conduct immediate compensation review.</span></p>
+                                    <p style="margin-top:6px;"><strong>Financial Exposure at Risk:</strong> <span id="cardRARText" class="text-rose font-bold font-mono">$14,500</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Feedback Simulator -->
+                        <div class="panel-card">
+                            <div class="panel-card-header">
+                                <div>
+                                    <h4 class="panel-card-title">Agent 6: Closed-Loop Feedback Simulator</h4>
+                                    <p class="panel-card-subtitle">Simulate observed 30-day post-intervention outcomes to update LinUCB exploration/exploitation matrices.</p>
+                                </div>
+                            </div>
+
+                            <div class="form-group-block">
+                                <label class="form-label">Employee ID:</label>
+                                <input type="text" id="fbEmpId" class="input-control" value="1" style="width:100%;">
+                            </div>
+
+                            <div class="form-group-block">
+                                <label class="form-label">Applied Intervention Arm:</label>
+                                <select id="fbActionSelect" class="input-control" style="width:100%;">
+                                    <option value="Salary Review">Salary Review</option>
+                                    <option value="L&D Offer">L&D Offer</option>
+                                    <option value="Managerial 1:1">Managerial 1:1</option>
+                                    <option value="Flexible Work">Flexible Work</option>
+                                    <option value="Retention Bonus">Retention Bonus</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group-block">
+                                <label class="form-label">30-Day Observed Outcome:</label>
+                                <select id="fbOutcomeSelect" class="input-control" style="width:100%;">
+                                    <option value="retained">Retained (+1.0 Reward)</option>
+                                    <option value="churned">Departed (-1.0 Reward)</option>
+                                </select>
+                            </div>
+
+                            <button class="btn btn-secondary" id="btnSubmitFeedback" style="width:100%; margin-top: 10px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                                </svg>
+                                <span>Submit Outcome & Retrain Bandit Policy</span>
+                            </button>
+
+                            <div class="telemetry-log-box" id="feedbackLogBox" style="display:none;">
+                                <div style="color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">Policy Update Telemetry:</div>
+                                <pre id="feedbackLogText"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- ===================================================== -->
+                <!-- MODULE 5: EMPLOYEE RISK EXPLORER                     -->
+                <!-- ===================================================== -->
+                <section class="tab-module-panel" id="panel-employee-explorer">
+                    <div class="module-header">
+                        <div class="module-title-wrap">
+                            <h2 class="module-title">
+                                Employee Risk Explorer
+                                <span class="module-badge">Workforce Directory</span>
+                            </h2>
+                            <p class="module-subtitle">
+                                Search and segment the complete workforce with multi-horizon risk indicators and one-click diagnostic drill-downs.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card">
+                        <div class="panel-card-header">
+                            <div>
+                                <h4 class="panel-card-title">Workforce Directory & Risk Segmentation</h4>
+                                <p class="panel-card-subtitle">Server-side pagination and real-time attribute filtering.</p>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <select id="filterRiskCategory" class="input-control input-control-sm">
+                                    <option value="">All Risk Tiers</option>
+                                    <option value="Critical">Critical</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+
+                                <div class="search-input-wrap">
+                                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                    <input type="text" id="employeeSearchInput" class="input-control input-control-sm" placeholder="Search employee, dept, or role...">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Age</th>
+                                        <th>Department</th>
+                                        <th>Job Role</th>
+                                        <th>Tenure</th>
+                                        <th>Satisfaction</th>
+                                        <th>Overtime</th>
+                                        <th class="text-right">Cox Median</th>
+                                        <th class="text-right">RSF Median</th>
+                                        <th class="text-right">Ensemble Tenure</th>
+                                        <th class="text-center">Risk Tier</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employeeTableBody">
+                                    <tr>
+                                        <td colspan="12" class="text-muted text-center" style="padding: 24px;">
+                                            Loading workforce records...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination Controls -->
+                        <div class="pagination-controls">
+                            <span id="pageInfoText">Showing page 1 of 30</span>
+                            <div class="page-btn-group">
+                                <button class="btn btn-sm btn-outline" id="btnPrevPage">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                    <span>Previous</span>
+                                </button>
+                                <button class="btn btn-sm btn-outline" id="btnNextPage">
+                                    <span>Next</span>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
         </div>
-      </div>
-
-      <!-- ════════════ TAB: OVERVIEW ════════════════════════ -->
-      <div class="tab-panel" id="tab-overview">
-        <!-- KPI Row -->
-        <div class="grid-4 mb-4" id="kpiRow">
-          <!-- filled by JS -->
-        </div>
-
-        <!-- Charts Row -->
-        <div class="grid-2 mb-4">
-
-          <!-- Risk Distribution donut -->
-          <div class="card card-pad">
-            <div class="card-title">Risk Distribution</div>
-            <div class="card-sub">Employees by predicted departure risk level</div>
-            <div style="display:flex;align-items:center;gap:24px">
-              <div style="flex-shrink:0;width:160px;height:160px">
-                <canvas id="chartRiskDonut"></canvas>
-              </div>
-              <div id="legendRisk" class="legend" style="flex-direction:column;gap:8px"></div>
-            </div>
-          </div>
-
-          <!-- Churn Horizon bar -->
-          <div class="card card-pad">
-            <div class="card-title">Churn Probability Distribution</div>
-            <div class="card-sub">How many employees fall into each risk band (30-day vs 90-day window)</div>
-            <div class="chart-wrap tall"><canvas id="chartHorizon"></canvas></div>
-          </div>
-
-        </div>
-
-        <!-- Department row -->
-        <div class="grid-2 mb-4">
-          <div class="card card-pad col-span-2">
-            <div class="section-header">
-              <div>
-                <div class="card-title">Department Attrition Risk</div>
-                <div class="card-sub">Average 90-day churn probability and total financial exposure per department</div>
-              </div>
-            </div>
-            <div class="chart-wrap"><canvas id="chartDept"></canvas></div>
-          </div>
-        </div>
-
-        <!-- Revenue tier -->
-        <div class="grid-2 mb-4">
-          <div class="card card-pad">
-            <div class="card-title">Financial Exposure Tiers</div>
-            <div class="card-sub">Estimated revenue at risk grouped by exposure level</div>
-            <div class="chart-wrap"><canvas id="chartTier"></canvas></div>
-          </div>
-
-          <div class="card card-pad">
-            <div class="card-title">Predicted Departure Windows</div>
-            <div class="card-sub">When employees are estimated to resign</div>
-            <div class="chart-wrap"><canvas id="chartCluster"></canvas></div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- ════════════ TAB: ATTRITION ANALYSIS ═════════════ -->
-      <div class="tab-panel" id="tab-attrition">
-        <div class="grid-2 mb-4">
-          <div class="card card-pad">
-            <div class="card-title">Model Accuracy Comparison</div>
-            <div class="card-sub">Concordance Index on held-out test set (higher = better discrimination)</div>
-            <div class="chart-wrap tall"><canvas id="chartModelComp"></canvas></div>
-          </div>
-          <div class="card card-pad">
-            <div class="card-title">Revenue Recall — Smarter Prioritization</div>
-            <div class="card-sub">What % of total financial exposure is captured by flagging only the top K% of employees</div>
-            <div class="chart-wrap tall"><canvas id="chartRecall"></canvas></div>
-          </div>
-        </div>
-        <div class="card card-pad">
-          <div class="card-title">Top 20 Highest-Risk Employees</div>
-          <div class="card-sub">Ranked by estimated revenue impact of attrition</div>
-          <div class="table-wrap" style="margin-top:12px">
-            <table>
-              <thead>
-                <tr>
-                  <th>Employee ID</th>
-                  <th>Role</th>
-                  <th>Department</th>
-                  <th>Monthly Income</th>
-                  <th>90-day Churn Risk</th>
-                  <th>Revenue at Risk</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="top20Table"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- ════════════ TAB: EMPLOYEE ROSTER ════════════════ -->
-      <div class="tab-panel" id="tab-roster">
-        <div class="card card-pad">
-          <div class="toolbar">
-            <div class="search-box">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" id="rosterSearch" placeholder="Search by ID or role…" oninput="renderRoster()">
-            </div>
-            <select class="select" id="rosterRiskFilter" onchange="renderRoster()">
-              <option value="">All risk levels</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Role</th>
-                  <th>Department</th>
-                  <th>Tenure</th>
-                  <th>30d Risk</th>
-                  <th>90d Risk</th>
-                  <th>Revenue at Risk</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="rosterTable"></tbody>
-            </table>
-          </div>
-          <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between">
-            <span class="text-muted" id="rosterCount"></span>
-            <div style="display:flex;gap:6px">
-              <button class="btn btn-ghost btn-sm" onclick="rosterPage(-1)">← Prev</button>
-              <button class="btn btn-ghost btn-sm" onclick="rosterPage(1)">Next →</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ════════════ TAB: RETENTION ACTIONS ═════════════ -->
-      <div class="tab-panel" id="tab-retention">
-        <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
-          <div class="card card-pad" style="flex:1;min-width:280px">
-            <div class="card-title">Select Employee</div>
-            <div class="card-sub">Choose an employee from your high-risk roster to generate a tailored retention plan</div>
-            <div style="margin-top:12px;display:flex;gap:8px">
-              <input type="text" class="input" id="agentEmpInput" placeholder="Employee ID (e.g. 1001)" style="flex:1">
-              <button class="btn btn-primary" onclick="runRetentionAgent()">Analyze</button>
-            </div>
-            <div class="divider"></div>
-            <div class="card-title" style="margin-bottom:8px">High-Risk Shortlist</div>
-            <div id="shortlistItems" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto"></div>
-          </div>
-
-          <div id="retentionResult" class="hidden" style="flex:2;min-width:300px;display:flex;flex-direction:column;gap:14px">
-            <!-- filled by JS -->
-          </div>
-        </div>
-      </div>
-
-      <!-- ════════════ TAB: MODEL PERFORMANCE ══════════════ -->
-      <div class="tab-panel" id="tab-benchmarks">
-        <div class="card card-pad mb-4">
-          <div class="card-title">Survival Model Configuration</div>
-          <div class="card-sub">Technical details of the trained Cox PH + RSF weighted ensemble</div>
-          <div class="grid-3" id="modelMetaGrid" style="margin-top:14px"></div>
-        </div>
-        <div class="card card-pad">
-          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-            <span>Incremental Contribution Analysis (Section 10 Ablation Study)</span>
-            <span class="badge badge-neutral" style="font-size:.7rem;font-weight:600">7 System Components</span>
-          </div>
-          <div class="card-sub" style="margin-bottom:12px">
-            Systematically evaluates the exact predictive (C-Index, IBS) and financial (Revenue Recall @10%) gain contributed by each proposed novelty layer over traditional baselines.
-          </div>
-          <div class="table-wrap" style="margin-top:12px">
-            <table>
-              <thead>
-                <tr>
-                  <th>Configuration</th>
-                  <th>C-Index</th>
-                  <th>Error Score (IBS)</th>
-                  <th>Financial Recall @10%</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody id="ablationTable"></tbody>
-            </table>
-          </div>
-          <div style="margin-top:14px;display:flex;justify-content:flex-end">
-            <button class="btn btn-secondary" onclick="runAblation()">Run Analysis</button>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /workspace -->
-  </div><!-- /content -->
-</div><!-- /app -->
-
-<!-- ═══════════ EMPLOYEE DETAIL SLIDE-PANEL ═══════════════════ -->
-<div class="detail-panel" id="detailPanel">
-  <div class="detail-header">
-    <div>
-      <div style="font-size:.75rem;color:var(--text-3);margin-bottom:4px">Employee Profile</div>
-      <div style="font-size:1.05rem;font-weight:800;letter-spacing:-.02em" id="dpName">—</div>
-      <div style="font-size:.78rem;color:var(--text-2);margin-top:2px" id="dpRole">—</div>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-      <div class="detail-close" onclick="closeDetailPanel()">✕</div>
-      <div id="dpBadge"></div>
-    </div>
-  </div>
-  <div class="detail-body" id="detailBody">
-    <div style="display:flex;align-items:center;gap:10px;padding:20px;justify-content:center;color:var(--text-3)">
-      <div class="spinner"></div> Loading…
-    </div>
-  </div>
-</div>
 
-<!-- ═══════════ JAVASCRIPT ════════════════════════════════════ -->
-<script>
-/* ── CONFIG ──────────────────────────────────────────────────── */
-const API = 'http://localhost:8000';
-let state = {
-  dataset: null,      // summary object
-  trained: false,
-  analytics: null,    // analytics response
-  trainResult: null,  // /api/train response
-  triageData: null,   // /api/triage leaderboard
-  predictions: [],    // top_employees + all
-  rosterAll: [],      // all employees for table
-  rosterFiltered: [], 
-  rosterPage: 0,
-  rosterPageSize: 25,
-  charts: {},
-};
-
-/* ── THEME ───────────────────────────────────────────────────── */
-function initTheme() {
-  const saved = localStorage.getItem('nxTheme') || 'dark';
-  document.getElementById('html-root').className = saved;
-}
-function toggleTheme() {
-  const html = document.getElementById('html-root');
-  const next = html.className === 'dark' ? 'light' : 'dark';
-  html.className = next;
-  localStorage.setItem('nxTheme', next);
-  rebuildAllCharts();
-}
-initTheme();
-
-/* ── UTILS ───────────────────────────────────────────────────── */
-function fmt$(n) { return '$' + Number(n).toLocaleString(undefined, {maximumFractionDigits:0}); }
-function fmtPct(n) { return (n * 100).toFixed(1) + '%'; }
-function fmtPctNum(n) { return n.toFixed(1) + '%'; }
-
-function churnBadge(p90) {
-  const v = parseFloat(p90) || 0;
-  if (v > 0.75) return '<span class="badge badge-critical">Critical</span>';
-  if (v > 0.5)  return '<span class="badge badge-high">High</span>';
-  if (v > 0.25) return '<span class="badge badge-medium">Medium</span>';
-  return '<span class="badge badge-low">Low</span>';
-}
-
-function tierBadgeClass(tier) {
-  if (!tier || tier === 'Stable') return 'badge-neutral';
-  const t = tier.toLowerCase();
-  if (t === 'critical') return 'badge-critical';
-  if (t === 'high')     return 'badge-high';
-  if (t === 'moderate') return 'badge-medium';
-  if (t === 'watch')    return 'badge-low';
-  return 'badge-neutral';
-}
-
-function cvColor() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--text-2').trim();
-}
-
-/* ── TOAST ───────────────────────────────────────────────────── */
-function toast(msg, type = 'info') {
-  const c = document.getElementById('toast-container');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<span>${msg}</span>`;
-  c.appendChild(t);
-  setTimeout(() => t.remove(), 4000);
-}
-
-/* ── API STATUS ──────────────────────────────────────────────── */
-async function checkAPI() {
-  const pill = document.getElementById('apiPill');
-  const lbl  = document.getElementById('apiLabel');
-  try {
-    const r = await fetch(`${API}/`);
-    if (r.ok) {
-      pill.className = 'api-pill online';
-      lbl.textContent = 'API Online';
-    } else { throw new Error(); }
-  } catch {
-    pill.className = 'api-pill offline';
-    lbl.textContent = 'API Offline';
-  }
-}
-checkAPI();
-
-/* ── TAB NAV ─────────────────────────────────────────────────── */
-const PAGE_TITLES = {
-  setup: 'Data Setup',
-  overview: 'Overview',
-  attrition: 'Attrition Analysis',
-  roster: 'Employee Roster',
-  retention: 'Retention Actions',
-  benchmarks: 'Model Performance',
-};
-
-function switchTab(id) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById(`tab-${id}`).classList.add('active');
-  document.getElementById(`nav-${id}`).classList.add('active');
-  document.getElementById('pageTitle').textContent = PAGE_TITLES[id];
-
-  if (id === 'roster' && state.rosterAll.length) renderRoster();
-  if (id === 'overview' && state.analytics) renderCharts();
-  if (id === 'attrition' && state.analytics) renderAttritionTab();
-}
-
-/* ── LOAD PRESET ─────────────────────────────────────────────── */
-async function loadPreset(preset) {
-  toast(`Loading ${preset === 'ibm' ? 'IBM HR Analytics' : 'Healthcare'} dataset…`, 'info');
-  try {
-    const r = await fetch(`${API}/api/load-preset`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({preset})
-    });
-    if (!r.ok) { const d=await r.json(); throw new Error(d.detail || 'Load failed'); }
-    const d = await r.json();
-    applyDatasetSummary(d.summary, d.message);
-    toast(d.message, 'success');
-  } catch(e) { toast(e.message, 'error'); }
-}
-
-/* ── UPLOAD FILE ─────────────────────────────────────────────── */
-document.getElementById('fileInput').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const fd = new FormData();
-  fd.append('file', file);
-  toast('Uploading dataset…', 'info');
-  try {
-    const r = await fetch(`${API}/api/upload`, { method:'POST', body:fd });
-    if (!r.ok) { const d=await r.json(); throw new Error(d.detail||'Upload failed'); }
-    const d = await r.json();
-    applyDatasetSummary(d.summary, d.message);
-    toast('Dataset uploaded successfully', 'success');
-  } catch(e) { toast(e.message, 'error'); }
-});
-
-const dz = document.getElementById('dropzone');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
-dz.addEventListener('drop', e => {
-  e.preventDefault(); dz.classList.remove('drag');
-  const file = e.dataTransfer.files[0];
-  if (file) { document.getElementById('fileInput').files = e.dataTransfer.files; document.getElementById('fileInput').dispatchEvent(new Event('change')); }
-});
-
-function applyDatasetSummary(s, msg) {
-  state.dataset = s;
-  document.getElementById('datasetSummary').classList.remove('hidden');
-  document.getElementById('summaryMsg').textContent = msg;
-  document.getElementById('summaryTitle').textContent = s.total_employees + ' employees loaded';
-  const badge = document.getElementById('datasetBadge');
-  badge.textContent = s.total_employees + ' employees';
-  badge.classList.remove('hidden');
-
-  const stats = [
-    { label: 'Employees', val: s.total_employees },
-    { label: 'Attrited', val: s.attrited },
-    { label: 'Attrition Rate', val: (s.attrition_rate ?? '—') + '%' },
-    { label: 'Avg Tenure', val: (s.avg_tenure_months ?? '—') + ' mo' },
-  ];
-  document.getElementById('summaryStats').innerHTML = stats.map(x =>
-    `<div style="text-align:center;padding:10px;background:var(--bg-inset);border-radius:var(--r-md);border:1px solid var(--border)">
-      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">${x.label}</div>
-      <div style="font-size:1.25rem;font-weight:800;color:var(--accent-1)">${x.val}</div>
-    </div>`
-  ).join('');
-
-  document.getElementById('btnTrain').disabled = false;
-  document.getElementById('topbarStatus').textContent = 'Dataset ready';
-}
-
-/* ── LAUNCH PIPELINE ─────────────────────────────────────────── */
-const STEPS = [
-  'Data ingestion & feature alignment',
-  'Survival model training (Cox PH + RSF)',
-  'Financial exposure scoring',
-  'Generating risk diagnostics',
-  'Calibrating intervention policies',
-  'Results ready',
-];
-
-async function launchPipeline() {
-  document.getElementById('btnTrain').classList.add('hidden');
-  const spinner = document.getElementById('trainSpinner');
-  spinner.classList.remove('hidden');
-  spinner.style.display = 'flex';
-
-  let step = 0;
-  const interval = setInterval(() => {
-    if (step > 0) setStepState(step-1, 'done');
-    if (step < STEPS.length) {
-      setStepState(step, 'running');
-      document.getElementById('trainMsg').textContent = STEPS[step];
-      step++;
-    }
-  }, 800);
-
-  try {
-    const r = await fetch(`${API}/api/train`, { method:'POST' });
-    if (!r.ok) { const d=await r.json(); throw new Error(d.detail||'Training failed'); }
-    const d = await r.json();
-    state.trainResult = d;
-    clearInterval(interval);
-    STEPS.forEach((_, i) => setStepState(i, 'done'));
-    document.getElementById('trainMsg').textContent = 'Pipeline complete ✓';
-
-    // Now load analytics
-    await loadAnalytics();
-    await loadTriage();
-    toast('Pipeline ready — all insights loaded', 'success');
-    document.getElementById('topbarStatus').textContent = 'Pipeline active';
-    state.trained = true;
-
-    setTimeout(() => switchTab('overview'), 500);
-  } catch(e) {
-    clearInterval(interval);
-    toast(e.message, 'error');
-    document.getElementById('trainMsg').textContent = 'Error: ' + e.message;
-    document.getElementById('btnTrain').classList.remove('hidden');
-  }
-}
-
-function setStepState(i, s) {
-  const el = document.getElementById(`ps-${i}`);
-  if (!el) return;
-  el.className = `pipeline-step ${s}`;
-  const ind = el.querySelector('.step-indicator');
-  if (s === 'done') ind.innerHTML = '✓';
-  else if (s === 'running') ind.innerHTML = '<div class="spinner" style="width:12px;height:12px;border-width:1.5px"></div>';
-  else ind.textContent = i + 1;
-}
-
-/* ── ANALYTICS ───────────────────────────────────────────────── */
-async function loadAnalytics() {
-  const r = await fetch(`${API}/api/analytics`);
-  if (!r.ok) throw new Error('Analytics load failed');
-  const d = await r.json();
-  state.analytics = d;
-  state.predictions = d.top_employees || [];
-  buildRosterAll();
-  return d;
-}
-
-async function loadTriage() {
-  const r = await fetch(`${API}/api/triage`, { method:'POST' });
-  if (!r.ok) return;
-  const d = await r.json();
-  state.triageData = d;
-  state.rosterAll = d.leaderboard || [];
-  buildRosterAll();
-}
-
-function buildRosterAll() {
-  if (state.triageData && state.triageData.leaderboard) {
-    state.rosterAll = state.triageData.leaderboard;
-  } else if (state.analytics && state.analytics.top_employees) {
-    state.rosterAll = state.analytics.top_employees;
-  }
-  state.rosterFiltered = [...state.rosterAll];
-}
-
-/* ── KPI ROW ─────────────────────────────────────────────────── */
-function renderKPIs() {
-  const a = state.analytics;
-  if (!a) return;
-  const s = a.summary || {};
-  const tr = state.trainResult || {};
-
-  const kpis = [
-    { label: 'Total Employees', val: s.total_employees || '—', icon: '👥', delta: null },
-    { label: 'At-Risk Employees', val: s.high_risk_employees || '—', icon: '⚠️',
-      delta: { txt: s.high_risk_employees && s.total_employees ? ((s.high_risk_employees/s.total_employees)*100).toFixed(1)+'% of workforce' : null, up: false } },
-    { label: 'Revenue at Risk', val: s.total_revenue_at_risk ? fmt$(s.total_revenue_at_risk) : '—', icon: '💰',
-      delta: { txt: 'ELV × 90-day churn probability', up: false } },
-    { label: 'Avg 90-Day Churn Risk', val: s.avg_churn_90d_pct ? s.avg_churn_90d_pct + '%' : '—', icon: '📉', delta: null },
-  ];
-
-  document.getElementById('kpiRow').innerHTML = kpis.map(k => `
-    <div class="kpi">
-      <div class="kpi-icon">${k.icon}</div>
-      <div class="kpi-label">${k.label}</div>
-      <div class="kpi-value">${k.val}</div>
-      ${k.delta?.txt ? `<div class="kpi-delta ${k.delta.up?'up':'down'}">${k.delta.txt}</div>` : ''}
-      <div class="kpi-bar"></div>
-    </div>
-  `).join('');
-}
-
-/* ── CHARTS ──────────────────────────────────────────────────── */
-function isDark() { return document.getElementById('html-root').className === 'dark'; }
-
-function chartDefaults() {
-  const dark = isDark();
-  return {
-    textColor: dark ? 'rgba(138,147,173,.85)' : 'rgba(75,82,99,.85)',
-    gridColor: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)',
-    font: { family: "'Inter', sans-serif", size: 11 },
-  };
-}
-
-function destroyChart(id) {
-  if (state.charts[id]) { state.charts[id].destroy(); delete state.charts[id]; }
-}
-
-function renderCharts() {
-  const a = state.analytics;
-  if (!a) return;
-  renderKPIs();
-
-  const cd = chartDefaults();
-  const COLORS = ['#f87171','#fb923c','#facc15','#4ade80','#60a5fa','#a78bfa'];
-  const BLUES  = ['#3b82f6','#6366f1'];
-
-  // ── Risk Donut ───────────────────────────────────────────── //
-  destroyChart('riskDonut');
-  const rd = a.risk_distribution || [];
-  const donutCtx = document.getElementById('chartRiskDonut').getContext('2d');
-  const riskColors = rd.map(r => {
-    const l = r.category.toLowerCase();
-    if (l.includes('crit')) return '#f87171';
-    if (l.includes('high')) return '#fb923c';
-    if (l.includes('med'))  return '#facc15';
-    return '#4ade80';
-  });
-  state.charts.riskDonut = new Chart(donutCtx, {
-    type: 'doughnut',
-    data: { labels: rd.map(r=>r.category), datasets: [{ data: rd.map(r=>r.count), backgroundColor: riskColors, borderWidth:2, borderColor: isDark()? '#121625':'#fff', hoverOffset:4 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout:'68%',
-      plugins: { legend: { display:false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed} employees` } } }
-    }
-  });
-  // Legend
-  document.getElementById('legendRisk').innerHTML = rd.map((r,i) =>
-    `<div class="legend-item"><div class="legend-dot" style="background:${riskColors[i]}"></div>${r.category} <strong>(${r.count})</strong></div>`
-  ).join('');
-
-  // ── Churn Horizon Bar ────────────────────────────────────── //
-  destroyChart('horizon');
-  const hData = a.churn_horizon || [];
-  const hCtx = document.getElementById('chartHorizon').getContext('2d');
-  state.charts.horizon = new Chart(hCtx, {
-    type: 'bar',
-    data: {
-      labels: hData.map(h=>h.label),
-      datasets: [
-        { label:'30-Day', data: hData.map(h=>h.churn_30d), backgroundColor:'rgba(59,130,246,.75)', borderRadius:4 },
-        { label:'90-Day', data: hData.map(h=>h.churn_90d), backgroundColor:'rgba(167,139,250,.75)', borderRadius:4 },
-      ]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ color:cd.textColor, font:cd.font } }, tooltip:{} },
-      scales:{
-        x:{ ticks:{color:cd.textColor,font:cd.font}, grid:{color:cd.gridColor} },
-        y:{ ticks:{color:cd.textColor,font:cd.font}, grid:{color:cd.gridColor} }
-      }
-    }
-  });
-
-  // ── Department Bar ───────────────────────────────────────── //
-  destroyChart('dept');
-  const dp = a.department_breakdown || [];
-  const dCtx = document.getElementById('chartDept').getContext('2d');
-  state.charts.dept = new Chart(dCtx, {
-    type: 'bar',
-    data: {
-      labels: dp.map(d=>d.department),
-      datasets: [
-        { label:'Avg 90d Churn %', data: dp.map(d=>d.avg_churn_90d), backgroundColor:'rgba(248,113,113,.75)', borderRadius:4, yAxisID:'y' },
-        { label:'High-Risk Employees', data: dp.map(d=>d.high_risk_count), backgroundColor:'rgba(59,130,246,.65)', borderRadius:4, yAxisID:'y1' },
-      ]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{color:cd.textColor,font:cd.font} } },
-      scales:{
-        x:{ ticks:{color:cd.textColor,font:cd.font}, grid:{display:false} },
-        y:{ position:'left', ticks:{color:cd.textColor,font:cd.font,callback:v=>v+'%'}, grid:{color:cd.gridColor}, title:{display:true,text:'Avg Churn %',color:cd.textColor,font:{size:10}} },
-        y1:{ position:'right', ticks:{color:cd.textColor,font:cd.font}, grid:{display:false}, title:{display:true,text:'High-Risk Count',color:cd.textColor,font:{size:10}} }
-      }
-    }
-  });
-
-  // ── Tier Pie ─────────────────────────────────────────────── //
-  destroyChart('tier');
-  const ti = a.tier_breakdown || [];
-  const tCtx = document.getElementById('chartTier').getContext('2d');
-  const tierColors = ['#f87171','#fb923c','#facc15','#4ade80'];
-  state.charts.tier = new Chart(tCtx, {
-    type:'bar',
-    data:{
-      labels: ti.map(t=> t.tier),
-      datasets:[{ label:'Revenue at Risk', data: ti.map(t=>t.total_revenue_at_risk), backgroundColor: tierColors.slice(0,ti.length), borderRadius:4 }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>' '+fmt$(c.parsed) } } },
-      scales:{
-        x:{ ticks:{color:cd.textColor,font:{size:10}}, grid:{display:false} },
-        y:{ ticks:{color:cd.textColor,font:cd.font,callback:v=>'$'+(v/1000).toFixed(0)+'k'}, grid:{color:cd.gridColor} }
-      }
-    }
-  });
-
-  // ── Cluster Bar ──────────────────────────────────────────── //
-  destroyChart('cluster');
-  const cl = a.cluster_distribution || [];
-  const clCtx = document.getElementById('chartCluster').getContext('2d');
-  state.charts.cluster = new Chart(clCtx, {
-    type:'bar',
-    data:{
-      labels: cl.map(c=>c.cluster),
-      datasets:[{ label:'Employees', data:cl.map(c=>c.count), backgroundColor:'rgba(99,102,241,.7)', borderRadius:4 }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false} },
-      scales:{
-        x:{ ticks:{color:cd.textColor,font:{size:10}}, grid:{display:false} },
-        y:{ ticks:{color:cd.textColor,font:cd.font}, grid:{color:cd.gridColor} }
-      }
-    }
-  });
-}
-
-/* ── ATTRITION TAB ───────────────────────────────────────────── */
-function renderAttritionTab() {
-  const a = state.analytics;
-  const tr = state.trainResult;
-  if (!a || !tr) return;
-  const cd = chartDefaults();
-
-  // Model comparison bar
-  destroyChart('modelComp');
-  const mc = a.model_chart || [];
-  const mcCtx = document.getElementById('chartModelComp').getContext('2d');
-  state.charts.modelComp = new Chart(mcCtx, {
-    type:'bar',
-    data:{
-      labels: mc.map(m=>m.model),
-      datasets:[{ label:'C-Index (higher=better)', data:mc.map(m=>m.c_index), backgroundColor:['rgba(59,130,246,.8)','rgba(99,102,241,.8)','rgba(167,139,250,.8)'], borderRadius:6 }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>` C-Index: ${c.parsed}` } } },
-      scales:{
-        x:{ ticks:{color:cd.textColor,font:cd.font}, grid:{display:false} },
-        y:{ min:0, max:1, ticks:{color:cd.textColor,font:cd.font}, grid:{color:cd.gridColor} }
-      }
-    }
-  });
-
-  // Revenue recall line
-  destroyChart('recall');
-  const recallData = tr.recall_at_k || [];
-  const rcCtx = document.getElementById('chartRecall').getContext('2d');
-  state.charts.recall = new Chart(rcCtx, {
-    type:'line',
-    data:{
-      labels: recallData.map(r=>`Top ${r.k_percentile}%`),
-      datasets:[
-        { label:'ELV-Weighted (Nexus)', data:recallData.map(r=>r.elv_triage_recall_pct), borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', fill:true, tension:.35, pointRadius:4 },
-        { label:'Raw Probability Sort', data:recallData.map(r=>r.prob_triage_recall_pct), borderColor:'#f87171', backgroundColor:'rgba(248,113,113,.06)', fill:true, tension:.35, pointRadius:4, borderDash:[5,3] },
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{color:cd.textColor,font:cd.font} } },
-      scales:{
-        x:{ ticks:{color:cd.textColor,font:cd.font}, grid:{color:cd.gridColor} },
-        y:{ ticks:{color:cd.textColor,font:cd.font,callback:v=>v+'%'}, grid:{color:cd.gridColor}, title:{display:true,text:'Revenue Captured %',color:cd.textColor} }
-      }
-    }
-  });
-
-  // Top 20 table
-  const top20 = a.top_employees || [];
-  document.getElementById('top20Table').innerHTML = top20.map(e => {
-    const income = e.MonthlyIncome || (e.Salary > 20000 ? e.Salary/12 : e.Salary) || 0;
-    const risk90 = parseFloat(e.prob_churn_90d || 0);
-    const tier = e.exposure_tier || '';
-    return `<tr class="clickable" onclick="openDetailPanel('${e.EmployeeID}')">
-      <td><span class="font-mono" style="color:var(--text-1);font-weight:700">#${e.EmployeeID}</span></td>
-      <td>${e.JobRole||'—'}</td>
-      <td>${e.Department||'—'}</td>
-      <td>$${Number(income).toLocaleString(undefined,{maximumFractionDigits:0})}/mo</td>
-      <td>${churnBadge(risk90)} <span style="font-size:.72rem;color:var(--text-3);margin-left:4px">${(risk90*100).toFixed(0)}%</span></td>
-      <td style="font-weight:700;color:var(--risk-critical)">${fmt$(e.revenue_at_risk||0)}</td>
-      <td><span class="badge ${tierBadgeClass(tier)}">${tier}</span></td>
-      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openRetention('${e.EmployeeID}')">Action Plan</button></td>
-    </tr>`;
-  }).join('');
-}
-
-/* ── EMPLOYEE ROSTER ─────────────────────────────────────────── */
-function renderRoster() {
-  const q = document.getElementById('rosterSearch').value.toLowerCase();
-  const rf = document.getElementById('rosterRiskFilter').value;
-  let data = state.rosterAll;
-
-  if (q) data = data.filter(e =>
-    String(e.EmployeeID).includes(q) ||
-    (e.JobRole||'').toLowerCase().includes(q) ||
-    (e.Department||'').toLowerCase().includes(q)
-  );
-  if (rf) data = data.filter(e => (e.risk_category||'').includes(rf));
-
-  state.rosterFiltered = data;
-  const start = state.rosterPage * state.rosterPageSize;
-  const page = data.slice(start, start + state.rosterPageSize);
-
-  document.getElementById('rosterCount').textContent =
-    `Showing ${start+1}–${Math.min(start+state.rosterPageSize, data.length)} of ${data.length} employees`;
-
-  document.getElementById('rosterTable').innerHTML = page.map(e => {
-    const r30 = parseFloat(e.prob_churn_30d||0);
-    const r90 = parseFloat(e.prob_churn_90d||0);
-    const tenure = e.YearsAtCompany ? `${e.YearsAtCompany} yr` : (e.duration_months ? `${(e.duration_months/12).toFixed(1)} yr` : '—');
-    return `<tr class="clickable" onclick="openDetailPanel('${e.EmployeeID}')">
-      <td><span class="font-mono" style="color:var(--text-1);font-weight:700">#${e.EmployeeID}</span></td>
-      <td>${e.JobRole||'—'}</td>
-      <td>${e.Department||'—'}</td>
-      <td>${tenure}</td>
-      <td style="color:${r30>0.5?'var(--risk-critical)':r30>0.25?'var(--risk-medium)':'var(--risk-low)'}">${(r30*100).toFixed(0)}%</td>
-      <td style="font-weight:600;color:${r90>0.5?'var(--risk-critical)':r90>0.25?'var(--risk-medium)':'var(--risk-low)'}">${(r90*100).toFixed(0)}%</td>
-      <td>${fmt$(e.revenue_at_risk||0)}</td>
-      <td>${churnBadge(r90)}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openRetention('${e.EmployeeID}')">Plan</button></td>
-    </tr>`;
-  }).join('');
-}
-
-function rosterPage(dir) {
-  const total = state.rosterFiltered.length;
-  const maxPage = Math.ceil(total / state.rosterPageSize) - 1;
-  state.rosterPage = Math.max(0, Math.min(maxPage, state.rosterPage + dir));
-  renderRoster();
-}
-
-/* ── DETAIL PANEL ────────────────────────────────────────────── */
-function openDetailPanel(empId) {
-  document.getElementById('detailPanel').classList.add('open');
-  document.getElementById('overlay').classList.add('show');
-  document.getElementById('dpName').textContent = `Employee #${empId}`;
-  document.getElementById('dpRole').textContent = '…';
-  document.getElementById('dpBadge').innerHTML = '';
-  document.getElementById('detailBody').innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;padding:20px;justify-content:center;color:var(--text-3)">
-      <div class="spinner"></div> Loading profile…
-    </div>`;
-
-  fetch(`${API}/api/employee/${empId}`)
-    .then(r => r.json())
-    .then(d => {
-      if (!d.success) throw new Error(d.detail || 'Failed');
-      renderDetailPanel(d);
-    })
-    .catch(e => {
-      document.getElementById('detailBody').innerHTML = `<div style="color:var(--risk-critical);padding:16px">${e.message}</div>`;
-    });
-}
-
-function renderDetailPanel(d) {
-  const p = d.profile || {};
-  const r90 = parseFloat(p.prob_churn_90d || 0);
-  const r60 = parseFloat(p.prob_churn_60d || 0);
-  const r30 = parseFloat(p.prob_churn_30d || 0);
-  const rar = p.revenue_at_risk || 0;
-  const income = p.MonthlyIncome || (p.Salary > 20000 ? p.Salary/12 : p.Salary) || 0;
-  const narrative = d.llm_diagnostic?.narrative || 'No diagnostic available.';
-  const reasons = d.top_reasons || [];
-
-  document.getElementById('dpName').textContent = `Employee #${p.EmployeeID}`;
-  document.getElementById('dpRole').textContent = `${p.JobRole || '—'} · ${p.Department || '—'}`;
-  document.getElementById('dpBadge').innerHTML = churnBadge(r90);
-
-  document.getElementById('detailBody').innerHTML = `
-    <!-- Key metrics -->
-    <div>
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">Departure Probability</div>
-      <div class="horizon-grid">
-        <div class="horizon-chip">
-          <div class="horizon-label">30 Days</div>
-          <div class="horizon-val" style="color:${r30>0.5?'var(--risk-critical)':r30>0.25?'var(--risk-medium)':'var(--risk-low)'}">${(r30*100).toFixed(0)}%</div>
+    <!-- ============================================================= -->
+    <!-- GLOBAL LOADING OVERLAY                                       -->
+    <!-- ============================================================= -->
+    <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+        <div class="loading-dialog-box">
+            <div class="loading-spinner"></div>
+            <div class="loading-message" id="loadingText">Processing Machine Learning Pipeline...</div>
         </div>
-        <div class="horizon-chip">
-          <div class="horizon-label">60 Days</div>
-          <div class="horizon-val" style="color:${r60>0.5?'var(--risk-critical)':r60>0.25?'var(--risk-medium)':'var(--risk-low)'}">${(r60*100).toFixed(0)}%</div>
-        </div>
-        <div class="horizon-chip">
-          <div class="horizon-label">90 Days</div>
-          <div class="horizon-val" style="color:${r90>0.5?'var(--risk-critical)':r90>0.25?'var(--risk-medium)':'var(--risk-low)'}">${(r90*100).toFixed(0)}%</div>
-        </div>
-      </div>
     </div>
 
-    <!-- Revenue -->
-    <div style="background:var(--bg-inset);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;display:flex;gap:20px">
-      <div><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--text-3)">Revenue at Risk</div>
-           <div style="font-size:1.35rem;font-weight:800;color:var(--risk-critical)">${fmt$(rar)}</div></div>
-      <div><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--text-3)">Monthly Income</div>
-           <div style="font-size:1.35rem;font-weight:800;color:var(--text-1)">$${Number(income).toLocaleString()}</div></div>
-    </div>
-
-    <!-- Risk bar -->
-    <div>
-      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-3);margin-bottom:5px">
-        <span>Overall churn risk</span><span style="color:${r90>0.5?'var(--risk-critical)':'var(--text-2)'};font-weight:600">${(r90*100).toFixed(0)}%</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill ${r90>0.5?'danger':''}" style="width:${(r90*100).toFixed(0)}%"></div>
-      </div>
-    </div>
-
-    <!-- Risk factors -->
-    ${reasons.length ? `
-    <div>
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">Top Risk Factors</div>
-      ${reasons.map(r => {
-        const isNeg = r.shap_value < 0;
-        const bar = Math.abs(r.shap_value) / 0.5 * 100;
-        return `<div style="margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:3px">
-            <span style="color:var(--text-2);font-weight:500">${r.feature}</span>
-            <span style="color:${isNeg?'var(--risk-low)':'var(--risk-critical)'};font-weight:600">${isNeg?'Reduces':'Increases'} risk</span>
-          </div>
-          <div class="progress-bar" style="height:5px">
-            <div style="height:100%;width:${Math.min(bar,100)}%;background:${isNeg?'#4ade80':'#f87171'};border-radius:99px"></div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>` : ''}
-
-    <!-- Narrative -->
-    <div>
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">AI Diagnostic</div>
-      <div class="narrative">${narrative}</div>
-    </div>
-
-    <!-- Profile -->
-    <div>
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">Employee Details</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        ${[['Tenure', (p.YearsAtCompany||'—')+'yr'], ['Satisfaction', p.JobSatisfaction||'—'], ['Overtime', p.Overtime||'—'], ['Work-Life Balance', p.WorkLifeBalance||'—']].map(([l,v])=>
-          `<div style="background:var(--bg-inset);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px">
-            <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3)">${l}</div>
-            <div style="font-size:.85rem;font-weight:700;color:var(--text-1);margin-top:2px">${v}</div>
-          </div>`
-        ).join('')}
-      </div>
-    </div>
-
-    <button class="btn btn-primary btn-full" onclick="closeDetailPanel();openRetention('${p.EmployeeID}')">Generate Retention Plan</button>
-  `;
-}
-
-function closeDetailPanel() {
-  document.getElementById('detailPanel').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
-}
-
-/* ── RETENTION ACTIONS ───────────────────────────────────────── */
-function openRetention(empId) {
-  switchTab('retention');
-  document.getElementById('agentEmpInput').value = empId;
-  runRetentionAgent();
-}
-
-function buildShortlist() {
-  // Only show employees flagged actionable (churn≥25% AND revenue≥$10k)
-  const actionable = state.rosterAll.filter(e => e.actionable === 1);
-  const top = (actionable.length > 0 ? actionable : state.rosterAll).slice(0, 10);
-  document.getElementById('shortlistItems').innerHTML = top.map(e => {
-    const r90 = parseFloat(e.prob_churn_90d || 0);
-    return `<div onclick="document.getElementById('agentEmpInput').value='${e.EmployeeID}';runRetentionAgent()"
-      style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:var(--ease)"
-      onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
-      <div style="font-size:.78rem;font-weight:700;color:var(--text-1)">#${e.EmployeeID}</div>
-      <div style="flex:1;font-size:.75rem;color:var(--text-3)">${e.JobRole||'—'}</div>
-      ${churnBadge(r90)}
-    </div>`;
-  }).join('');
-}
-
-async function runRetentionAgent() {
-  const empId = document.getElementById('agentEmpInput').value.trim();
-  if (!empId) { toast('Enter an employee ID', 'error'); return; }
-
-  const resEl = document.getElementById('retentionResult');
-  resEl.classList.remove('hidden');
-  resEl.innerHTML = `<div class="card card-pad" style="display:flex;align-items:center;gap:12px;color:var(--text-3)"><div class="spinner"></div>Analyzing employee #${empId}…</div>`;
-
-  try {
-    const r = await fetch(`${API}/api/agent/run`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({employee_id: empId})
-    });
-    if (!r.ok) { const d=await r.json(); throw new Error(d.detail||'Agent failed'); }
-    const d = await r.json();
-    renderRetentionResult(d.agent_results, empId);
-  } catch(e) {
-    resEl.innerHTML = `<div class="card card-pad" style="color:var(--risk-critical)">${e.message}</div>`;
-  }
-}
-
-function renderRetentionResult(ar, empId) {
-  const ei = ar.employee_info || {};
-  const diag = ar.diagnostic || {};
-  const strat = ar.strategist || {};
-  const card = ar.action_card || {};
-  const r90 = parseFloat(ei.prob_churn_90d || 0);
-  const rar = parseFloat(ei.revenue_at_risk || 0);
-
-  const ucbScores = strat.ucb_scores || {};
-  const sortedActions = Object.entries(ucbScores).sort((a,b)=>b[1]-a[1]);
-  const maxScore = sortedActions[0]?.[1] || 1;
-
-  document.getElementById('retentionResult').innerHTML = `
-    <!-- Employee quick summary -->
-    <div class="card card-pad">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
-        <div>
-          <div style="font-size:.72rem;color:var(--text-3);margin-bottom:4px">Retention Plan for</div>
-          <div style="font-size:1.1rem;font-weight:800">Employee #${empId}</div>
-          <div style="font-size:.8rem;color:var(--text-2);margin-top:2px">${ei.JobRole||'—'} · ${ei.Department||'—'}</div>
-        </div>
-        <div style="text-align:right">
-          ${churnBadge(r90)}
-          <div style="font-size:.72rem;color:var(--text-3);margin-top:6px">Revenue at Risk</div>
-          <div style="font-size:1.1rem;font-weight:800;color:var(--risk-critical)">${fmt$(rar)}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- AI Diagnostic -->
-    <div class="card card-pad">
-      <div class="card-title">Why This Employee May Leave</div>
-      <div class="card-sub">AI-generated analysis based on predictive model signals</div>
-      <div class="narrative">${diag.narrative||'No narrative generated.'}</div>
-    </div>
-
-    <!-- Recommended interventions ranked -->
-    <div class="card card-pad">
-      <div class="card-title">Recommended Interventions</div>
-      <div class="card-sub">Ranked by predicted retention success probability</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
-        ${sortedActions.map(([action, score], i) => {
-          const pct = ((score / maxScore) * 100).toFixed(0);
-          const isTop = i === 0;
-          return `<div style="padding:12px 14px;border:1px solid ${isTop?'rgba(59,130,246,.3)':'var(--border)'};border-radius:var(--r-md);background:${isTop?'rgba(59,130,246,.05)':'var(--bg-inset)'};position:relative">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <div style="font-size:.85rem;font-weight:${isTop?700:500};color:${isTop?'var(--text-1)':'var(--text-2)'}">
-                ${isTop?'⭐ ':''}${action}
-              </div>
-              <div style="font-size:.72rem;font-weight:700;color:${isTop?'var(--accent-1)':'var(--text-3)'}">Score ${score.toFixed(3)}</div>
-            </div>
-            <div class="progress-bar" style="height:4px">
-              <div style="height:100%;width:${pct}%;background:${isTop?'var(--accent-1)':'var(--border)'};border-radius:99px;transition:.3s"></div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-
-    <!-- Action steps -->
-    <div class="intervention-card">
-      <div class="intervention-header">
-        <div class="intervention-title">Manager Action Plan</div>
-        <div style="font-size:.75rem;opacity:.85">Recommended: ${strat.selected_action}</div>
-      </div>
-      <div class="intervention-body">
-        ${(card.action_steps||[]).map((s,i) => `
-          <div class="intervention-step">
-            <div class="step-num">${i+1}</div>
-            <div>${s.replace(/^\d+\.\s*/,'')}</div>
-          </div>`).join('')}
-      </div>
-      <div class="feedback-row">
-        <button class="btn btn-sm" style="background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;font-weight:700" 
-          onclick="sendFeedback('${empId}','${strat.selected_action}','retained')">
-          ✓ Employee Retained
-        </button>
-        <button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;font-weight:700"
-          onclick="sendFeedback('${empId}','${strat.selected_action}','churned')">
-          ✗ Employee Left
-        </button>
-      </div>
-    </div>
-  `;
-
-  // Update shortlist
-  buildShortlist();
-}
-
-async function sendFeedback(empId, action, outcome) {
-  try {
-    const r = await fetch(`${API}/api/agent/feedback`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({employee_id:empId, action, outcome})
-    });
-    const d = await r.json();
-    toast(`Outcome logged — intervention model updated`, 'success');
-  } catch(e) { toast(e.message, 'error'); }
-}
-
-/* ── MODEL PERFORMANCE TAB ───────────────────────────────────── */
-function renderModelPerformance() {
-  const tr = state.trainResult;
-  if (!tr) return;
-  const mc = tr.metrics || {};
-  const cox = mc.cox || {};
-  const rsf = mc.rsf || {};
-  const ew  = tr.ensemble_weights || {};
-
-  document.getElementById('modelMetaGrid').innerHTML = [
-    { label:'Cox PH C-Index', val: cox.test_c_index || '—', note:'Held-out test set' },
-    { label:'RSF C-Index', val: rsf.test_c_index || '—', note:'Held-out test set' },
-    { label:'Ensemble Weight (Cox)', val: ew.cox ? (ew.cox*100).toFixed(0)+'%' : '—', note:'Dynamic calibration' },
-    { label:'Ensemble Weight (RSF)', val: ew.rsf ? (ew.rsf*100).toFixed(0)+'%' : '—', note:'Dynamic calibration' },
-    { label:'Best Model', val: tr.best_model || '—', note:'By test C-index' },
-    { label:'Total Employees', val: tr.total_employees || '—', note:'All predictions generated' },
-  ].map(m => `
-    <div style="background:var(--bg-inset);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px">
-      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:6px">${m.label}</div>
-      <div style="font-size:1.5rem;font-weight:800;color:var(--accent-1)">${m.val}</div>
-      <div style="font-size:.7rem;color:var(--text-3);margin-top:3px">${m.note}</div>
-    </div>
-  `).join('');
-
-  // Auto-render ablation table if pre-computed during pipeline training
-  const ablationRows = (state.analytics && state.analytics.ablation_results) || (tr && tr.ablation_results);
-  if (ablationRows && ablationRows.length > 0) {
-    renderAblationRows(ablationRows);
-  }
-}
-
-function renderAblationRows(rows) {
-  if (!rows || !rows.length) return;
-  
-  // Calculate max recall for scaling micro-bars
-  const maxRecall = Math.max(...rows.map(r => parseFloat(r.Revenue_Recall_10) || 0), 100);
-
-  document.getElementById('ablationTable').innerHTML = rows.map(row => {
-    const name = row.Configuration || '';
-    const isProposed = name.includes('Proposed') || name.includes('Novelty 4') || name.includes('Ensemble');
-    const isBaseline = name.includes('Baseline');
-
-    // Parse C-index numeric
-    const cidxVal = parseFloat(row.C_index) || 0;
-    const cidxPct = Math.min(100, (cidxVal / 1.0) * 100);
-
-    // Recall parse
-    const recVal = parseFloat(row.Revenue_Recall_10) || 0;
-
-    return `<tr style="${isProposed ? 'background:rgba(59,130,246,.06);border-left:3px solid var(--accent-1);' : ''}">
-      <td>
-        <div style="font-weight:700;color:${isProposed ? 'var(--accent-1)' : 'var(--text-1)'};display:flex;align-items:center;gap:6px">
-          ${name}
-          ${isProposed ? '<span class="badge badge-medium" style="background:rgba(59,130,246,.15);color:var(--accent-1);border:1px solid rgba(59,130,246,.3)">⭐ Champion</span>' : ''}
-          ${isBaseline ? '<span class="badge badge-neutral" style="font-size:.65rem">Baseline</span>' : ''}
-        </div>
-      </td>
-      <td>
-        <div style="font-weight:700;color:var(--text-1);font-family:var(--mono)">${row.C_index || '—'}</div>
-        ${cidxVal > 0 ? `<div class="progress-bar" style="height:3px;margin-top:3px;width:70px"><div style="height:100%;width:${cidxPct}%;background:var(--accent-1);border-radius:99px"></div></div>` : ''}
-      </td>
-      <td style="color:var(--text-2);font-family:var(--mono)">${row.IBS || '—'}</td>
-      <td>
-        <div style="font-weight:800;color:${recVal > 60 ? 'var(--risk-low)' : 'var(--text-1)'};font-family:var(--mono)">
-          ${row.Revenue_Recall_10 || '—'}
-        </div>
-        ${recVal > 0 ? `<div class="progress-bar" style="height:3px;margin-top:3px;width:70px"><div style="height:100%;width:${(recVal/maxRecall)*100}%;background:var(--risk-low);border-radius:99px"></div></div>` : ''}
-      </td>
-      <td style="color:var(--text-3);font-size:.74rem;line-height:1.4">${row.Notes || '—'}</td>
-    </tr>`;
-  }).join('');
-}
-
-async function runAblation() {
-  const btn = document.querySelector('button[onclick="runAblation()"]');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner" style="width:12px;height:12px;border-width:1.5px"></div> Calculating Matrix…';
-  }
-  toast('Running 7-Stage Section 10 Ablation Study…', 'info');
-  try {
-    const r = await fetch(`${API}/api/ablation`, { method:'POST' });
-    if (!r.ok) { const d=await r.json(); throw new Error(d.detail||'Ablation failed'); }
-    const d = await r.json();
-    const rows = d.ablation_results || [];
-    renderAblationRows(rows);
-    toast('Ablation analysis completed successfully', 'success');
-  } catch(e) { 
-    toast(e.message, 'error'); 
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = 'Re-run Analysis';
-    }
-  }
-}
-
-/* ── REBUILD CHARTS ON THEME CHANGE ─────────────────────────── */
-function rebuildAllCharts() {
-  if (state.analytics) {
-    renderCharts();
-    if (state.trainResult) renderAttritionTab();
-  }
-}
-
-/* ── HOOK TAB SWITCHES TO RENDER CONTENT ─────────────────────── */
-const _switchTab = switchTab;
-window.switchTab = function(id) {
-  _switchTab(id);
-  if (id === 'overview' && state.analytics) renderCharts();
-  if (id === 'attrition' && state.analytics) renderAttritionTab();
-  if (id === 'retention' && state.rosterAll.length) buildShortlist();
-  if (id === 'benchmarks' && state.trainResult) renderModelPerformance();
-};
-
-/* ── REDIRECT AFTER TRAIN ────────────────────────────────────── */
-// Override launchPipeline to also hookup post-load
-const _launch = launchPipeline;
-window.launchPipeline = async function() {
-  await _launch();
-  buildShortlist();
-};
-</script>
+    <!-- Application Script -->
+    <script src="/static/js/app.js"></script>
 </body>
 </html>

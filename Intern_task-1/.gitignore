@@ -1,0 +1,101 @@
+# ─────────────────────────────────────────────
+# PDFs – research papers / external docs
+# ─────────────────────────────────────────────
+*.pdf
+
+# ─────────────────────────────────────────────
+# Word / Office temporary & lock files
+# ─────────────────────────────────────────────
+~$*.docx
+~$*.doc
+~$*.xlsx
+~$*.pptx
+
+# Unrelated Word documents (research papers, reports not part of project code)
+BCE497J_PROJECT_REPORT_TEMPLATE_UPDATED.docx
+NEXUS_C_Novelty_Detailed_Report.docx
+Nexus_AI_Project_Documentation.docx
+"Research papers PJT (1).docx"
+Nexus_AI_Project_Report.docx
+
+# ─────────────────────────────────────────────
+# Research papers folder (contains only PDFs/scripts for analysis)
+# ─────────────────────────────────────────────
+sample PJT papers/
+
+# ─────────────────────────────────────────────
+# Python cache & build artifacts
+# ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# ─────────────────────────────────────────────
+# Virtual environments
+# ─────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ─────────────────────────────────────────────
+# Environment variables & secrets
+# ─────────────────────────────────────────────
+.env
+*.env
+
+# ─────────────────────────────────────────────
+# Jupyter Notebook checkpoints
+# ─────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ─────────────────────────────────────────────
+# Model binaries & large output files
+# (keep metrics/json, exclude large .pkl files)
+# ─────────────────────────────────────────────
+outputs/saved_models/*.pkl
+outputs/saved_models/*.joblib
+
+# Keep these output files (JSON metrics, HTML report)
+!outputs/model_metrics.json
+!outputs/model_report.html
+!outputs/saved_models/evaluation_metrics.json
+!outputs/saved_models/cv_results.json
+
+# ─────────────────────────────────────────────
+# Scratch / temporary work scripts
+# ─────────────────────────────────────────────
+scratch/
+
+# ─────────────────────────────────────────────
+# Upload cache
+# ─────────────────────────────────────────────
+uploads/
+
+# ─────────────────────────────────────────────
+# OS generated files
+# ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─────────────────────────────────────────────
+# IDE / editor settings
+# ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ─────────────────────────────────────────────
+# Datasets – raw CSVs (may be large; keep only if needed)
+# Uncomment the line below to also exclude datasets
+# ─────────────────────────────────────────────
+# Datasets/

@@ -45,13 +45,20 @@ def compute_elv(monthly_income, tenure_months=None, projected_remaining_months=N
     return np.round(elv, 2)
 
 
-def compute_revenue_at_risk(predictions_df):
+def compute_revenue_at_risk(predictions_df, horizon='90d', department=None):
     """
     Compute per-employee Revenue at Risk score and return sorted financial triage DataFrame.
+    Supports multi-horizon forecasting (30-day, 60-day, 90-day) and department filtering.
     
-    Revenue at Risk = ELV * P(churn in 90 days)
+    Revenue at Risk = ELV * P(churn in horizon) * Confidence_Weight
     """
     df = predictions_df.copy()
+
+    # Optional department pre-filtering (case-insensitive, ignore 'all' or empty)
+    if department and str(department).strip().lower() not in ['all', '', 'none'] and 'Department' in df.columns:
+        dept_match = df['Department'].astype(str).str.lower() == str(department).strip().lower()
+        if dept_match.any():
+            df = df[dept_match].copy()
     
     # 1. Obtain Monthly Income
     if 'MonthlyIncome' in df.columns:
@@ -70,43 +77,26 @@ def compute_revenue_at_risk(predictions_df):
     elv = compute_elv(monthly_income, tenure_months, predicted_medians)
     df['elv'] = elv
 
-    # 4. Obtain 90-day churn probability P(churn_90d)
-    if 'prob_churn_90d' in df.columns:
-        p_churn_90d = df['prob_churn_90d'].values
+    # 4. Obtain horizon-specific churn probability
+    horizon_key = str(horizon).lower().strip()
+    if horizon_key in ['30d', '30', '30days'] and 'prob_churn_30d' in df.columns:
+        p_churn = df['prob_churn_30d'].values
+    elif horizon_key in ['60d', '60', '60days'] and 'prob_churn_60d' in df.columns:
+        p_churn = df['prob_churn_60d'].values
+    elif 'prob_churn_90d' in df.columns:
+        p_churn = df['prob_churn_90d'].values
     elif 'avg_median_months' in df.columns:
-        # Logistic approximation from predicted median: P(churn_90d) = 1 / (1 + exp((median - 3)/2))
-        p_churn_90d = 1.0 / (1.0 + np.exp((df['avg_median_months'].values - 3.0) / 2.0))
+        # Calibrated survival probability from expected tenure
+        p_churn = np.clip(1.0 - (df['avg_median_months'].values / 60.0), 0.02, 0.95)
     else:
-        p_churn_90d = np.full(len(df), 0.1)
+        p_churn = np.full(len(df), 0.1)
 
-    df['prob_churn_90d'] = np.round(p_churn_90d, 4)
+    df['prob_churn_active'] = np.round(p_churn, 4)
+    df['prob_churn_90d'] = np.round(p_churn, 4)  # Retain for table display compatibility
+    df['churn_prob'] = np.round(p_churn, 4)
+    p_churn_eval = df['prob_churn_active'].values
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # 5.  CONFIDENCE-WEIGHTED REVENUE AT RISK
-    # ─────────────────────────────────────────────────────────────────────────
-    # The raw formula  RAR = ELV × P(churn)  is mathematically correct but
-    # treats a 10% signal exactly the same way as a 90% signal — just scaled.
-    # In practice, very low probabilities carry so much model uncertainty that
-    # including them at face value inflates the total exposure figure.
-    #
-    # We address this with three confidence bands:
-    #
-    #   P(churn_90d) ≥ 0.80  → confidence_weight = 1.00   (near-certain departure)
-    #   P(churn_90d) ≥ 0.40  → confidence_weight = 0.70   (probable but uncertain)
-    #   P(churn_90d) < 0.40  → confidence_weight = 0.40   (low signal; model noise)
-    #
-    # Effective RAR = ELV × P(churn_90d) × confidence_weight
-    #
-    # This gives three behavioural properties:
-    #   1. High-confidence churners (>80%) drive the leaderboard correctly.
-    #   2. Mid-range (40–80%) employees still appear but at reduced exposure.
-    #   3. Low-probability employees (<40%) are de-prioritised without being
-    #      silently dropped — they still have a revenue_at_risk value.
-    #
-    # NOTE: The original unweighted RAR is retained as `rar_unweighted` so
-    # the Revenue Recall@K metric (which compares ELV-triage vs prob-triage)
-    # still uses the comparable, undiscounted values.
-
+    # 5. Confidence-weighted Revenue at Risk
     BAND_HIGH   = 0.80   # near-certain: full weight
     BAND_MID    = 0.40   # probable:     70% weight
     W_HIGH      = 1.00
@@ -114,36 +104,20 @@ def compute_revenue_at_risk(predictions_df):
     W_LOW       = 0.40
 
     confidence_weight = np.where(
-        p_churn_90d >= BAND_HIGH, W_HIGH,
-        np.where(p_churn_90d >= BAND_MID, W_MID, W_LOW)
+        p_churn_eval >= BAND_HIGH, W_HIGH,
+        np.where(p_churn_eval >= BAND_MID, W_MID, W_LOW)
     )
 
     df['confidence_weight']  = np.round(confidence_weight, 2)
-    df['rar_unweighted']     = np.round(elv * p_churn_90d, 2)          # original formula kept for recall metric
-    revenue_at_risk          = elv * p_churn_90d * confidence_weight    # confidence-adjusted exposure
+    df['rar_unweighted']     = np.round(elv * p_churn_eval, 2)
+    revenue_at_risk          = elv * p_churn_eval * confidence_weight
     df['revenue_at_risk']    = np.round(revenue_at_risk, 2)
 
-
-    # 6. Assign Financial Exposure Tier using DUAL-GATE logic:
-    #    Gate 1: Churn probability must exceed a meaningful threshold.
-    #    Gate 2: Revenue at risk must exceed an absolute dollar threshold.
-    #
-    #    Pure quartile-based ranking (previous approach) is wrong: it always
-    #    flags exactly 25% as "High", even if all employees have <10% churn risk.
-    #
-    #    Tier definitions:
-    #      Critical  : churn ≥ 50%  AND  revenue_at_risk ≥ $15,000
-    #      High      : churn ≥ 25%  AND  revenue_at_risk ≥ $10,000
-    #      Moderate  : churn ≥ 10%  (some meaningful departure signal present)
-    #      Watch     : churn ≥ 5%   (low signal, monitor)
-    #      Stable    : churn < 5%   (effectively no near-term flight risk)
-
+    # 6. Assign Financial Exposure Tier using DUAL-GATE logic
     CRITICAL_CHURN  = 0.50
     CRITICAL_RAR    = 15_000
-
     HIGH_CHURN      = 0.25
     HIGH_RAR        = 10_000
-
     MODERATE_CHURN  = 0.10
     WATCH_CHURN     = 0.05
 
@@ -163,27 +137,74 @@ def compute_revenue_at_risk(predictions_df):
 
     df['exposure_tier'] = [
         assign_exposure(p, r)
-        for p, r in zip(p_churn_90d, revenue_at_risk)
+        for p, r in zip(p_churn_eval, revenue_at_risk)
     ]
 
-    # Urgency score: combines churn likelihood and financial magnitude.
-    # Useful for sorting; a high-earner with low churn will rank below
-    # a moderate-earner who is actually likely to leave.
-    #   urgency = 0.6 * prob_churn_90d + 0.4 * norm_revenue_at_risk
-    max_rar = max(revenue_at_risk.max(), 1.0)
+    # Urgency score: combines churn likelihood and financial magnitude
+    max_rar = max(float(revenue_at_risk.max()) if len(revenue_at_risk) > 0 else 1.0, 1.0)
     df['urgency_score'] = np.round(
-        0.6 * p_churn_90d + 0.4 * (revenue_at_risk / max_rar),
+        0.6 * p_churn_eval + 0.4 * (revenue_at_risk / max_rar),
         4
     )
 
-    # Actionable flag: employee is truly worth an immediate intervention
     df['actionable'] = (
-        (p_churn_90d >= HIGH_CHURN) & (revenue_at_risk >= HIGH_RAR)
+        (p_churn_eval >= HIGH_CHURN) & (revenue_at_risk >= HIGH_RAR)
     ).astype(int)
 
     # Sort by urgency (churn-weighted) not raw revenue
     df_sorted = df.sort_values(by='urgency_score', ascending=False).reset_index(drop=True)
     return df_sorted
+
+
+def compute_financial_kpis(triage_df):
+    """
+    Computes enterprise financial intelligence KPIs for Tab 2:
+    1. Total Revenue at Risk (aggregate portfolio exposure)
+    2. Average Exposure per At-Risk Employee
+    3. High & Critical Flight Risk Headcount & workforce percentage
+    4. Top Exposure Department name, exposure volume, and % share
+    """
+    if triage_df is None or len(triage_df) == 0:
+        return {
+            'total_revenue_at_risk': 0.0,
+            'avg_exposure_per_at_risk': 0.0,
+            'at_risk_count': 0,
+            'at_risk_pct': 0.0,
+            'top_department_name': 'N/A',
+            'top_department_rar': 0.0,
+            'top_department_pct': 0.0
+        }
+
+    total_rar = float(triage_df['revenue_at_risk'].sum())
+
+    # Flight risk headcount: Critical or High
+    at_risk_mask = triage_df['risk_category'].isin(['Critical', 'High']) if 'risk_category' in triage_df.columns else triage_df['exposure_tier'].isin(['Critical', 'High'])
+    at_risk_df = triage_df[at_risk_mask]
+    at_risk_count = int(len(at_risk_df))
+    at_risk_pct = round((at_risk_count / max(len(triage_df), 1)) * 100.0, 1)
+
+    avg_exposure = round(float(at_risk_df['revenue_at_risk'].mean()), 2) if at_risk_count > 0 else round(float(triage_df['revenue_at_risk'].mean()), 2) if len(triage_df) > 0 else 0.0
+
+    # Top Department Analysis
+    if 'Department' in triage_df.columns and len(triage_df) > 0:
+        dept_grouped = triage_df.groupby('Department')['revenue_at_risk'].sum().sort_values(ascending=False)
+        top_dept_name = str(dept_grouped.index[0]) if len(dept_grouped) > 0 else 'All Units'
+        top_dept_rar = float(dept_grouped.iloc[0]) if len(dept_grouped) > 0 else 0.0
+        top_dept_pct = round((top_dept_rar / max(total_rar, 1.0)) * 100.0, 1)
+    else:
+        top_dept_name = 'Enterprise Fleet'
+        top_dept_rar = total_rar
+        top_dept_pct = 100.0
+
+    return {
+        'total_revenue_at_risk': round(total_rar, 2),
+        'avg_exposure_per_at_risk': avg_exposure,
+        'at_risk_count': at_risk_count,
+        'at_risk_pct': at_risk_pct,
+        'top_department_name': top_dept_name,
+        'top_department_rar': round(top_dept_rar, 2),
+        'top_department_pct': top_dept_pct
+    }
 
 
 

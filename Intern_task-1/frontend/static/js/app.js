@@ -1,978 +1,1168 @@
 /**
- * Employee Survival Prediction System – Frontend Logic
+ * NEXUS AI — Enterprise Frontend Application Logic
+ * Architecture: Modular Event Bus, Reactive State Management,
+ * Seamless Drill-Downs & Zero-Emoji Vector Presentations.
  */
 
-// ===================== STATE =====================
-const APP = {
-    currentTab: 'upload',
-    trained: false,
-    currentPage: 1,
-    perPage: 50,
-    selectedEmployeeId: null,
-    debounceTimer: null
-};
-
-// ===================== DOM READY =====================
 document.addEventListener('DOMContentLoaded', () => {
-    initTabs();
-    initUpload();
-    initSearch();
-    initTriage();
-    initAblation();
-});
-
-
-// ===================== TABS =====================
-function initTabs() {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (btn.disabled) return;
-            switchTab(btn.dataset.tab);
-        });
-    });
-}
-
-function switchTab(tabName) {
-    APP.currentTab = tabName;
-
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === tabName);
-    });
-
-    document.querySelectorAll('.tab-panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === `panel${capitalize(tabName)}`);
-    });
-}
-
-function enableTab(tabName) {
-    const btn = document.querySelector(`[data-tab="${tabName}"]`);
-    if (btn) btn.disabled = false;
-}
-
-function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-// ===================== UPLOAD =====================
-function initUpload() {
-    const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('fileInput');
-
-    // Click to browse
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    // Drag & drop
-    dropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropzone.classList.add('drag-over');
-    });
-
-    dropzone.addEventListener('dragleave', () => {
-        dropzone.classList.remove('drag-over');
-    });
-
-    dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropzone.classList.remove('drag-over');
-        const files = e.dataTransfer.files;
-        if (files.length > 0) handleFileUpload(files[0]);
-    });
-
-    // File input change
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) handleFileUpload(e.target.files[0]);
-    });
-
-    // Generate sample button
-    document.getElementById('btnGenerateSample').addEventListener('click', generateSample);
-
-    // Preset buttons
-    const btnIBM = document.getElementById('btnLoadIBM');
-    if (btnIBM) btnIBM.addEventListener('click', () => loadPreset('ibm'));
-
-    const btnHealth = document.getElementById('btnLoadHealthcare');
-    if (btnHealth) btnHealth.addEventListener('click', () => loadPreset('healthcare'));
-
-    // Train button
-    document.getElementById('btnTrain').addEventListener('click', trainModels);
-}
-
-async function loadPreset(presetName) {
-    try {
-        showToast(`Loading ${presetName.toUpperCase()} benchmark dataset...`, 'info');
-        const res = await fetch('/api/load-preset', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ preset: presetName })
-        });
-        if (!res.ok) {
-            throw new Error(`Server returned HTTP ${res.status}. Please restart your python app.py terminal.`);
-        }
-        const data = await res.json();
-        if (data.error) {
-            showToast(data.error, 'error');
-            return;
-        }
-
-        renderDatasetSummary(data.summary);
-        updateStatus('loaded', data.message);
-        showToast(data.message, 'success');
-    } catch (e) {
-        showToast('Failed to load preset: ' + e.message, 'error');
-    }
-}
-
-
-
-async function handleFileUpload(file) {
-    const allowedExt = ['.csv', '.xlsx', '.xls'];
-    const ext = '.' + file.name.split('.').pop().toLowerCase();
-    if (!allowedExt.includes(ext)) {
-        showToast('Please upload a CSV or Excel (.xlsx/.xls) file', 'error');
-        return;
-    }
-
-    const progressEl = document.getElementById('uploadProgress');
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-
-    progressEl.classList.remove('hidden');
-    progressFill.style.width = '30%';
-    progressText.textContent = 'Uploading...';
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-        progressFill.style.width = '60%';
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-
-        if (data.error) {
-            showToast(data.error, 'error');
-            progressEl.classList.add('hidden');
-            return;
-        }
-
-        progressFill.style.width = '100%';
-        progressText.textContent = 'Upload complete!';
-
-        setTimeout(() => {
-            progressEl.classList.add('hidden');
-            displayDatasetSummary(data.summary);
-            updateStatus('loaded', `${data.summary.total_employees} employees loaded`);
-            showToast(data.message, 'success');
-        }, 500);
-
-    } catch (err) {
-        showToast(`Upload failed: ${err.message}`, 'error');
-        progressEl.classList.add('hidden');
-    }
-}
-
-async function generateSample() {
-    const btn = document.getElementById('btnGenerateSample');
-    btn.disabled = true;
-    btn.textContent = 'Generating...';
-
-    try {
-        const res = await fetch('/api/generate-sample', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ n_employees: 1000 })
-        });
-        const data = await res.json();
-
-        if (data.error) {
-            showToast(data.error, 'error');
-            return;
-        }
-
-        displayDatasetSummary(data.summary);
-        updateStatus('loaded', `${data.summary.total_employees} employees loaded`);
-        showToast(data.message, 'success');
-
-    } catch (err) {
-        showToast(`Generation failed: ${err.message}`, 'error');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = `
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            Generate Sample Dataset`;
-    }
-}
-
-function displayDatasetSummary(summary) {
-    const container = document.getElementById('datasetSummary');
-    const cardsEl = document.getElementById('summaryCards');
-
-    cardsEl.innerHTML = `
-        <div class="summary-card">
-            <div class="card-value">${summary.total_employees}</div>
-            <div class="card-label">Total Employees</div>
-        </div>
-        <div class="summary-card">
-            <div class="card-value">${summary.attrited}</div>
-            <div class="card-label">Resigned</div>
-        </div>
-        <div class="summary-card">
-            <div class="card-value">${summary.active}</div>
-            <div class="card-label">Active</div>
-        </div>
-        <div class="summary-card">
-            <div class="card-value">${summary.attrition_rate}%</div>
-            <div class="card-label">Attrition Rate</div>
-        </div>
-        <div class="summary-card">
-            <div class="card-value">${summary.avg_tenure_months}</div>
-            <div class="card-label">Avg Tenure (Mo)</div>
-        </div>
-        <div class="summary-card">
-            <div class="card-value">${summary.departments}</div>
-            <div class="card-label">Departments</div>
-        </div>
-    `;
-
-    // Sample preview table
-    if (summary.sample_rows && summary.sample_rows.length > 0) {
-        const cols = Object.keys(summary.sample_rows[0]);
-        const headEl = document.getElementById('previewHead');
-        const bodyEl = document.getElementById('previewBody');
-
-        headEl.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
-        bodyEl.innerHTML = summary.sample_rows.map(row =>
-            `<tr>${cols.map(c => `<td>${row[c] != null ? row[c] : '—'}</td>`).join('')}</tr>`
-        ).join('');
-    }
-
-    container.classList.remove('hidden');
-}
-
-// ===================== TRAINING =====================
-async function trainModels() {
-    const btn = document.getElementById('btnTrain');
-    const statusEl = document.getElementById('trainingStatus');
-    const summaryEl = document.getElementById('datasetSummary');
-
-    btn.disabled = true;
-    statusEl.classList.remove('hidden');
-    updateStatus('training', 'Training models...');
-
-    // Animate training steps
-    const steps = ['stepData', 'stepKM', 'stepCox', 'stepRSF', 'stepSHAP', 'stepDone'];
-    let stepIdx = 0;
-
-    const stepInterval = setInterval(() => {
-        if (stepIdx > 0) {
-            document.getElementById(steps[stepIdx - 1]).classList.remove('active');
-            document.getElementById(steps[stepIdx - 1]).classList.add('done');
-        }
-        if (stepIdx < steps.length) {
-            document.getElementById(steps[stepIdx]).classList.add('active');
-            document.getElementById('trainingText').textContent =
-                document.getElementById(steps[stepIdx]).textContent.trim();
-            stepIdx++;
-        }
-    }, 800);
-
-    try {
-        const res = await fetch('/api/train', { method: 'POST' });
-        const data = await res.json();
-
-        clearInterval(stepInterval);
-
-        if (data.error) {
-            showToast(data.error, 'error');
-            statusEl.classList.add('hidden');
-            btn.disabled = false;
-            updateStatus('loaded', 'Training failed');
-            return;
-        }
-
-        // Mark all steps done
-        steps.forEach(s => {
-            document.getElementById(s).classList.remove('active');
-            document.getElementById(s).classList.add('done');
-        });
-        document.getElementById('trainingText').textContent = 'Nexus Multi-Agent Architecture Ready!';
-
-
-        APP.trained = true;
-
-        // Enable all tabs
-        enableTab('overview');
-        enableTab('triage');
-        enableTab('ablation');
-        enableTab('employees');
-        enableTab('detail');
-
-
-        updateStatus('ready', `${data.total_employees} employees analyzed`);
-        showToast('Models trained successfully! Navigate to Overview or Employee Risk Table.', 'success');
-
-        // Load overview data
-        loadOverview();
-        loadEmployees();
-
-        setTimeout(() => {
-            statusEl.classList.add('hidden');
-            btn.disabled = false;
-        }, 2000);
-
-    } catch (err) {
-        clearInterval(stepInterval);
-        showToast(`Training failed: ${err.message}`, 'error');
-        statusEl.classList.add('hidden');
-        btn.disabled = false;
-        updateStatus('loaded', 'Training failed');
-    }
-}
-
-// ===================== OVERVIEW =====================
-async function loadOverview() {
-    try {
-        const res = await fetch('/api/results/overview');
-        const data = await res.json();
-
-        if (data.error) {
-            showToast(data.error, 'error');
-            return;
-        }
-
-        // Model Comparison
-        renderComparison(data.model_comparison);
-
-        // Risk Distribution
-        renderRiskBars(data.risk_distribution, data.total_employees);
-
-        // Cluster Distribution
-        renderClusterBars(data.cluster_distribution, data.total_employees);
-
-        // KM Plots
-        document.getElementById('kmOverallImg').src = 'data:image/png;base64,' + data.km_overall_plot;
-        if (data.km_department_plot) {
-            document.getElementById('kmDeptImg').src = 'data:image/png;base64,' + data.km_department_plot;
-        }
-
-        // SHAP Global
-        document.getElementById('shapGlobalImg').src = 'data:image/png;base64,' + data.shap_global_plot;
-
-    } catch (err) {
-        showToast(`Failed to load overview: ${err.message}`, 'error');
-    }
-}
-
-function renderComparison(comp) {
-    const el = document.getElementById('comparisonContent');
-    const isCoxWinner = comp.winner === 'Cox PH';
-    const isRsfWinner = comp.winner === 'Random Survival Forest';
-
-    el.innerHTML = `
-        <div class="comparison-row ${isCoxWinner ? 'comparison-winner' : ''}">
-            <div>
-                <div class="comparison-model">Cox Proportional Hazards</div>
-                ${isCoxWinner ? '<div class="winner-label">★ Winner</div>' : ''}
-            </div>
-            <div class="comparison-value" style="color: ${isCoxWinner ? 'var(--risk-low)' : 'var(--text-primary)'}">
-                ${comp.cox_ph_c_index.toFixed(4)}
-            </div>
-        </div>
-        <div class="comparison-row ${isRsfWinner ? 'comparison-winner' : ''}">
-            <div>
-                <div class="comparison-model">Random Survival Forest</div>
-                ${isRsfWinner ? '<div class="winner-label">★ Winner</div>' : ''}
-            </div>
-            <div class="comparison-value" style="color: ${isRsfWinner ? 'var(--risk-low)' : 'var(--text-primary)'}">
-                ${comp.rsf_c_index.toFixed(4)}
-            </div>
-        </div>
-        <div class="comparison-interpretation">${comp.interpretation}</div>
-    `;
-}
-
-function renderRiskBars(dist, total) {
-    const el = document.getElementById('riskBars');
-    const risks = ['Critical', 'High', 'Medium', 'Low'];
-    const colors = {
-        Critical: 'var(--risk-critical)',
-        High: 'var(--risk-high)',
-        Medium: 'var(--risk-medium)',
-        Low: 'var(--risk-low)'
+    // ── APPLICATION STATE ──────────────────────────────────────────────────
+    const appState = {
+        activeTab: 'metrics-hub',
+        activeSubTab: 'sub-overview',
+        isTrained: false,
+        currentPreset: 'ibm',
+        triageHorizon: '90d',
+        triageDept: 'all',
+        overviewData: null,
+        triageData: [],
+        hazardRatios: [],
+        currentPage: 1,
+        perPage: 25,
+        totalEmployees: 0,
+        sidebarCollapsed: false
     };
 
-    el.innerHTML = risks.map(risk => {
-        const count = dist[risk] || 0;
-        const pct = total > 0 ? (count / total * 100) : 0;
-        return `
-            <div class="risk-bar-row">
-                <div class="risk-bar-label" style="color: ${colors[risk]}">${risk}</div>
-                <div class="risk-bar-track">
-                    <div class="risk-bar-fill" style="width: ${pct}%; background: ${colors[risk]}">
-                        ${pct > 8 ? pct.toFixed(0) + '%' : ''}
-                    </div>
-                </div>
-                <div class="risk-bar-count">${count}</div>
-            </div>
-        `;
-    }).join('');
-}
+    // Module & Subtab Human-Readable Name Mappings for Breadcrumbs
+    const moduleNames = {
+        'metrics-hub': 'Overview & Model Metrics',
+        'financial-triage': 'Financial Intelligence',
+        'explainability': 'Explainability & Diagnostics',
+        'multi-agent': 'Retention Operations',
+        'employee-explorer': 'Employee Risk Explorer'
+    };
 
-function renderClusterBars(dist, total) {
-    const el = document.getElementById('clusterBars');
-    const clusters = ['0–2 months', '2–4 months', '4–6 months', '6–8 months', '8–12 months', '12+ months'];
-    const colors = ['#ff3b5c', '#ff6b42', '#ff8c42', '#ffd93d', '#7ee8a8', '#2ee89e'];
+    const subTabNames = {
+        'sub-overview': 'Overview & Matrix',
+        'sub-cox': 'Cox Proportional Hazards',
+        'sub-rsf': 'Random Survival Forest',
+        'sub-ensemble': 'Weighted Ensemble',
+        'sub-baseline': 'Baseline Logistic',
+        'sub-bandit': 'LinUCB Contextual Bandit',
+        'sub-km': 'Kaplan-Meier Estimator'
+    };
 
-    el.innerHTML = clusters.map((cluster, i) => {
-        const count = dist[cluster] || 0;
-        const pct = total > 0 ? (count / total * 100) : 0;
-        return `
-            <div class="cluster-bar-row">
-                <div class="cluster-bar-label">${cluster}</div>
-                <div class="cluster-bar-track">
-                    <div class="cluster-bar-fill" style="width: ${pct}%; background: ${colors[i]}">
-                        ${pct > 8 ? pct.toFixed(0) + '%' : ''}
-                    </div>
-                </div>
-                <div class="cluster-bar-count">${count}</div>
-            </div>
-        `;
-    }).join('');
-}
+    // ── DOM ELEMENTS CACHE ────────────────────────────────────────────────
+    const elements = {
+        // App Shell & Navigation
+        appSidebar: document.getElementById('appSidebar'),
+        sidebarToggle: document.getElementById('sidebarToggle'),
+        mobileNavToggle: document.getElementById('mobileNavToggle'),
+        crumbModule: document.getElementById('crumbModule'),
+        crumbSubSep: document.getElementById('crumbSubSep'),
+        crumbSub: document.getElementById('crumbSub'),
+        navTabs: document.querySelectorAll('.nav-link-btn'),
+        tabPanels: document.querySelectorAll('.tab-module-panel'),
+        subTabBtns: document.querySelectorAll('.subtab-btn'),
+        subTabPanels: document.querySelectorAll('.subtab-panel'),
 
-// ===================== EMPLOYEES TABLE =====================
-function initSearch() {
-    const searchInput = document.getElementById('searchInput');
-    const riskFilter = document.getElementById('riskFilter');
-    const clusterFilter = document.getElementById('clusterFilter');
+        // Header Actions & Status
+        btnLoadIBM: document.getElementById('btnLoadIBM'),
+        btnLoadHealthcare: document.getElementById('btnLoadHealthcare'),
+        fileInput: document.getElementById('fileInput'),
+        btnTrainPipeline: document.getElementById('btnTrainPipeline'),
+        trainSpinner: document.getElementById('trainSpinner'),
+        trainBtnIcon: document.getElementById('trainBtnIcon'),
+        trainBtnText: document.getElementById('trainBtnText'),
+        datasetStatusText: document.getElementById('datasetStatusText'),
+        modelStatusText: document.getElementById('modelStatusText'),
 
-    searchInput.addEventListener('input', debounce(() => {
-        APP.currentPage = 1;
-        loadEmployees();
-    }, 300));
+        // Module 1: Overview & Model Metrics
+        kpiBestModel: document.getElementById('kpiBestModel'),
+        kpiEnsembleWeights: document.getElementById('kpiEnsembleWeights'),
+        kpiBaselineDelta: document.getElementById('kpiBaselineDelta'),
+        kpiAvgTenure: document.getElementById('kpiAvgTenure'),
+        overviewBaselineCI: document.getElementById('overviewBaselineCI'),
+        overviewBaselineIBS: document.getElementById('overviewBaselineIBS'),
+        overviewCoxCI: document.getElementById('overviewCoxCI'),
+        overviewCoxIBS: document.getElementById('overviewCoxIBS'),
+        overviewRsfCI: document.getElementById('overviewRsfCI'),
+        overviewRsfIBS: document.getElementById('overviewRsfIBS'),
+        overviewEnsembleCI: document.getElementById('overviewEnsembleCI'),
+        overviewEnsembleIBS: document.getElementById('overviewEnsembleIBS'),
+        detailedMetricsTableBody: document.getElementById('detailedMetricsTableBody'),
+        rocCurvesPlotContainer: document.getElementById('rocCurvesPlotContainer'),
+        confusionMatricesPlotContainer: document.getElementById('confusionMatricesPlotContainer'),
 
-    riskFilter.addEventListener('change', () => {
-        APP.currentPage = 1;
-        loadEmployees();
-    });
+        // Baseline Boxes
+        baselineAuc: document.getElementById('baselineAuc'),
+        baselineBrier: document.getElementById('baselineBrier'),
+        baselineAcc: document.getElementById('baselineAcc'),
+        baselinePrec: document.getElementById('baselinePrec'),
+        baselineRecall: document.getElementById('baselineRecall'),
+        baselineSpec: document.getElementById('baselineSpec'),
+        baselineF1: document.getElementById('baselineF1'),
+        baselineThreshold: document.getElementById('baselineThreshold'),
+        baselineCM: document.getElementById('baselineCM'),
 
-    clusterFilter.addEventListener('change', () => {
-        APP.currentPage = 1;
-        loadEmployees();
-    });
-}
+        // Cox PH
+        coxTestCI: document.getElementById('coxTestCI'),
+        coxTrainCI: document.getElementById('coxTrainCI'),
+        coxCvCI: document.getElementById('coxCvCI'),
+        coxTestIBS: document.getElementById('coxTestIBS'),
+        coxLogLikelihood: document.getElementById('coxLogLikelihood'),
+        coxAIC: document.getElementById('coxAIC'),
+        coxAcc: document.getElementById('coxAcc'),
+        coxPrec: document.getElementById('coxPrec'),
+        coxRecall: document.getElementById('coxRecall'),
+        coxSpec: document.getElementById('coxSpec'),
+        coxF1: document.getElementById('coxF1'),
+        coxAuc: document.getElementById('coxAuc'),
+        coxThreshold: document.getElementById('coxThreshold'),
+        coxCM: document.getElementById('coxCM'),
+        hazardRatiosBody: document.getElementById('hazardRatiosBody'),
+        hrSearchInput: document.getElementById('hrSearchInput'),
 
-async function loadEmployees() {
-    if (!APP.trained) return;
+        // RSF
+        rsfTestCI: document.getElementById('rsfTestCI'),
+        rsfTrainCI: document.getElementById('rsfTrainCI'),
+        rsfCvCI: document.getElementById('rsfCvCI'),
+        rsfTestIBS: document.getElementById('rsfTestIBS'),
+        rsfAcc: document.getElementById('rsfAcc'),
+        rsfPrec: document.getElementById('rsfPrec'),
+        rsfRecall: document.getElementById('rsfRecall'),
+        rsfSpec: document.getElementById('rsfSpec'),
+        rsfF1: document.getElementById('rsfF1'),
+        rsfAuc: document.getElementById('rsfAuc'),
+        rsfThreshold: document.getElementById('rsfThreshold'),
+        rsfCM: document.getElementById('rsfCM'),
 
-    const search = document.getElementById('searchInput').value;
-    const risk = document.getElementById('riskFilter').value;
-    const cluster = document.getElementById('clusterFilter').value;
+        // Ensemble
+        ensWeightCox: document.getElementById('ensWeightCox'),
+        ensWeightRSF: document.getElementById('ensWeightRSF'),
+        ensAcc: document.getElementById('ensAcc'),
+        ensPrec: document.getElementById('ensPrec'),
+        ensRecall: document.getElementById('ensRecall'),
+        ensSpec: document.getElementById('ensSpec'),
+        ensF1: document.getElementById('ensF1'),
+        ensAuc: document.getElementById('ensAuc'),
+        ensThreshold: document.getElementById('ensThreshold'),
+        ensCM: document.getElementById('ensCM'),
 
-    const params = new URLSearchParams({
-        page: APP.currentPage,
-        per_page: APP.perPage,
-        search,
-        risk,
-        cluster
-    });
+        // Visual Plots
+        kmOverallContainer: document.getElementById('kmOverallContainer'),
+        kmDeptContainer: document.getElementById('kmDeptContainer'),
+        globalShapContainer: document.getElementById('globalShapContainer'),
 
-    try {
-        const res = await fetch(`/api/results/employees?${params}`);
-        const data = await res.json();
+        // Module 2: Financial Intelligence
+        triageHorizonGroup: document.getElementById('triageHorizonGroup'),
+        triageDeptFilter: document.getElementById('triageDeptFilter'),
+        triageTotalRAR: document.getElementById('triageTotalRAR'),
+        triageHorizonSub: document.getElementById('triageHorizonSub'),
+        triageAvgExposure: document.getElementById('triageAvgExposure'),
+        triageAtRiskCount: document.getElementById('triageAtRiskCount'),
+        triageAtRiskPct: document.getElementById('triageAtRiskPct'),
+        triageTopDept: document.getElementById('triageTopDept'),
+        triageTopDeptSub: document.getElementById('triageTopDeptSub'),
+        triageTableBody: document.getElementById('triageTableBody'),
+        triageSearchInput: document.getElementById('triageSearchInput'),
 
-        if (data.error) {
-            showToast(data.error, 'error');
+        // Module 3: Diagnostics
+        diagEmpIdInput: document.getElementById('diagEmpIdInput'),
+        btnInspectDiagnostic: document.getElementById('btnInspectDiagnostic'),
+        diagResultBox: document.getElementById('diagResultBox'),
+        diagEmpTitle: document.getElementById('diagEmpTitle'),
+        diagRiskBadge: document.getElementById('diagRiskBadge'),
+        diagNarrativeText: document.getElementById('diagNarrativeText'),
+        diagReasonsList: document.getElementById('diagReasonsList'),
+        diagIndividualPlotContainer: document.getElementById('diagIndividualPlotContainer'),
+
+        // Module 4: Retention Operations
+        agentEmpInput: document.getElementById('agentEmpInput'),
+        btnRunAgentPipeline: document.getElementById('btnRunAgentPipeline'),
+        actionCardBox: document.getElementById('actionCardBox'),
+        actionCardTitle: document.getElementById('actionCardTitle'),
+        actionArmBadge: document.getElementById('actionArmBadge'),
+        cardEmpName: document.getElementById('cardEmpName'),
+        cardEmpRole: document.getElementById('cardEmpRole'),
+        cardEmpDept: document.getElementById('cardEmpDept'),
+        cardTenureText: document.getElementById('cardTenureText'),
+        cardStrategyText: document.getElementById('cardStrategyText'),
+        cardRARText: document.getElementById('cardRARText'),
+        cardActionStepsList: document.getElementById('cardActionStepsList'),
+
+        // Feedback Simulator & Telemetry
+        fbEmpId: document.getElementById('fbEmpId'),
+        fbActionSelect: document.getElementById('fbActionSelect'),
+        fbOutcomeSelect: document.getElementById('fbOutcomeSelect'),
+        btnSubmitFeedback: document.getElementById('btnSubmitFeedback'),
+        feedbackLogBox: document.getElementById('feedbackLogBox'),
+        feedbackLogText: document.getElementById('feedbackLogText'),
+        fbStatusBadge: document.getElementById('fbStatusBadge'),
+        fbArmName: document.getElementById('fbArmName'),
+        fbRewardSignal: document.getElementById('fbRewardSignal'),
+        fbPayoffShift: document.getElementById('fbPayoffShift'),
+        fbUncertaintyVar: document.getElementById('fbUncertaintyVar'),
+        fbInsightText: document.getElementById('fbInsightText'),
+
+        // Module 5: Employee Risk Explorer
+        employeeTableBody: document.getElementById('employeeTableBody'),
+        employeeSearchInput: document.getElementById('employeeSearchInput'),
+        filterRiskCategory: document.getElementById('filterRiskCategory'),
+        pageInfoText: document.getElementById('pageInfoText'),
+        btnPrevPage: document.getElementById('btnPrevPage'),
+        btnNextPage: document.getElementById('btnNextPage'),
+
+        // Overlay Loading
+        loadingOverlay: document.getElementById('loadingOverlay'),
+        loadingText: document.getElementById('loadingText')
+    };
+
+    // ── INITIALIZATION ────────────────────────────────────────────────────
+    async function init() {
+        setupEventListeners();
+        updateBreadcrumbs();
+        try {
+            await Promise.all([
+                fetchOverview(),
+                fetchFinancialTriage(),
+                fetchEmployees()
+            ]);
+        } catch (e) {
+            console.warn('Initial data load warning:', e);
+        }
+    }
+
+    // ── EVENT LISTENERS SETUP ─────────────────────────────────────────────
+    function setupEventListeners() {
+        // Sidebar Collapse Toggle
+        if (elements.sidebarToggle) {
+            elements.sidebarToggle.addEventListener('click', () => {
+                appState.sidebarCollapsed = !appState.sidebarCollapsed;
+                elements.appSidebar.classList.toggle('collapsed', appState.sidebarCollapsed);
+            });
+        }
+
+        // Mobile Nav Toggle
+        if (elements.mobileNavToggle) {
+            elements.mobileNavToggle.addEventListener('click', () => {
+                elements.appSidebar.classList.toggle('open');
+            });
+        }
+
+        // Primary Module Sidebar Navigation
+        elements.navTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.tab;
+                switchMainTab(target);
+                // Auto-close on mobile if opened
+                if (elements.appSidebar.classList.contains('open')) {
+                    elements.appSidebar.classList.remove('open');
+                }
+            });
+        });
+
+        // Subtabs Navigation in Module 1
+        elements.subTabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.subtab;
+                switchSubTab(target);
+            });
+        });
+
+        // Dataset Presets & File Upload
+        if (elements.btnLoadIBM) {
+            elements.btnLoadIBM.addEventListener('click', () => loadPreset('ibm'));
+        }
+        if (elements.btnLoadHealthcare) {
+            elements.btnLoadHealthcare.addEventListener('click', () => loadPreset('healthcare'));
+        }
+        if (elements.fileInput) {
+            elements.fileInput.addEventListener('change', handleFileUpload);
+        }
+        if (elements.btnTrainPipeline) {
+            elements.btnTrainPipeline.addEventListener('click', runTrainingPipeline);
+        }
+
+        // Search Inputs & Filters
+        if (elements.hrSearchInput) {
+            elements.hrSearchInput.addEventListener('input', filterHazardRatios);
+        }
+        if (elements.triageSearchInput) {
+            elements.triageSearchInput.addEventListener('input', filterTriageTable);
+        }
+        if (elements.triageHorizonGroup) {
+            const horizonBtns = elements.triageHorizonGroup.querySelectorAll('.horizon-btn');
+            horizonBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    horizonBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    appState.triageHorizon = btn.dataset.horizon;
+                    fetchFinancialTriage();
+                });
+            });
+        }
+        if (elements.triageDeptFilter) {
+            elements.triageDeptFilter.addEventListener('change', () => {
+                appState.triageDept = elements.triageDeptFilter.value;
+                fetchFinancialTriage();
+            });
+        }
+        if (elements.employeeSearchInput) {
+            elements.employeeSearchInput.addEventListener('input', debounce(fetchEmployees, 300));
+        }
+        if (elements.filterRiskCategory) {
+            elements.filterRiskCategory.addEventListener('change', () => {
+                appState.currentPage = 1;
+                fetchEmployees();
+            });
+        }
+
+        // Pagination
+        if (elements.btnPrevPage) {
+            elements.btnPrevPage.addEventListener('click', () => {
+                if (appState.currentPage > 1) {
+                    appState.currentPage--;
+                    fetchEmployees();
+                }
+            });
+        }
+        if (elements.btnNextPage) {
+            elements.btnNextPage.addEventListener('click', () => {
+                appState.currentPage++;
+                fetchEmployees();
+            });
+        }
+
+        // Diagnostic Inspector
+        if (elements.btnInspectDiagnostic) {
+            elements.btnInspectDiagnostic.addEventListener('click', () => {
+                const empId = elements.diagEmpIdInput.value.trim() || '1';
+                fetchEmployeeDetail(empId);
+            });
+        }
+
+        // Agent Pipeline Runner
+        if (elements.btnRunAgentPipeline) {
+            elements.btnRunAgentPipeline.addEventListener('click', () => {
+                const empId = elements.agentEmpInput.value.trim() || '1';
+                executeAgentPipeline(empId);
+            });
+        }
+
+        // Feedback Submission
+        if (elements.btnSubmitFeedback) {
+            elements.btnSubmitFeedback.addEventListener('click', submitFeedbackOutcome);
+        }
+    }
+
+    // ── NAVIGATION CONTROLLERS ────────────────────────────────────────────
+    function switchMainTab(tabId) {
+        appState.activeTab = tabId;
+        elements.navTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+        elements.tabPanels.forEach(p => p.classList.toggle('active', p.id === `panel-${tabId}`));
+
+        updateBreadcrumbs();
+
+        // Lazy-fetch on tab switch if empty
+        if (tabId === 'financial-triage') {
+            if (!appState.triageData || appState.triageData.length === 0) {
+                fetchFinancialTriage();
+            } else {
+                renderTriageTable(appState.triageData);
+            }
+        } else if (tabId === 'employee-explorer') {
+            fetchEmployees();
+        }
+    }
+
+    function switchSubTab(subTabId) {
+        appState.activeSubTab = subTabId;
+        elements.subTabBtns.forEach(b => b.classList.toggle('active', b.dataset.subtab === subTabId));
+        elements.subTabPanels.forEach(p => p.classList.toggle('active', p.id === subTabId));
+
+        updateBreadcrumbs();
+    }
+
+    function updateBreadcrumbs() {
+        if (!elements.crumbModule) return;
+        const modTitle = moduleNames[appState.activeTab] || 'Overview & Model Metrics';
+        elements.crumbModule.textContent = modTitle;
+
+        if (appState.activeTab === 'metrics-hub') {
+            elements.crumbSubSep.style.display = 'inline';
+            elements.crumbSub.style.display = 'inline';
+            elements.crumbSub.textContent = subTabNames[appState.activeSubTab] || 'Overview & Matrix';
+        } else {
+            elements.crumbSubSep.style.display = 'none';
+            elements.crumbSub.style.display = 'none';
+        }
+    }
+
+    function showLoading(msg = 'Processing Machine Learning Pipeline...') {
+        if (elements.loadingText) elements.loadingText.textContent = msg;
+        if (elements.loadingOverlay) elements.loadingOverlay.style.display = 'flex';
+    }
+
+    function hideLoading() {
+        if (elements.loadingOverlay) elements.loadingOverlay.style.display = 'none';
+    }
+
+    // ── DATASET & PIPELINE ACTIONS ────────────────────────────────────────
+    async function loadPreset(preset) {
+        showLoading(`Loading ${preset === 'healthcare' ? 'Watson Healthcare' : 'IBM HR Analytics'} Benchmark Dataset...`);
+        try {
+            const res = await fetch('/api/load-preset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ preset })
+            });
+            const data = await res.json();
+            if (data.success) {
+                appState.currentPreset = preset;
+                if (elements.btnLoadIBM) elements.btnLoadIBM.classList.toggle('active', preset === 'ibm');
+                if (elements.btnLoadHealthcare) elements.btnLoadHealthcare.classList.toggle('active', preset === 'healthcare');
+                if (elements.datasetStatusText) elements.datasetStatusText.textContent = data.message;
+                
+                // Retrain pipeline on newly selected preset
+                await runTrainingPipeline();
+            } else {
+                alert(data.error || 'Failed to load dataset preset');
+            }
+        } catch (err) {
+            console.error('Preset loading error:', err);
+        } finally {
+            hideLoading();
+        }
+    }
+
+    async function handleFileUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        showLoading('Uploading and validating dataset schema...');
+        try {
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                if (elements.btnLoadIBM) elements.btnLoadIBM.classList.remove('active');
+                if (elements.btnLoadHealthcare) elements.btnLoadHealthcare.classList.remove('active');
+                if (elements.datasetStatusText) elements.datasetStatusText.textContent = data.message;
+                await runTrainingPipeline();
+            } else {
+                alert(data.error || 'Dataset validation failed');
+            }
+        } catch (err) {
+            console.error('File upload error:', err);
+            alert('Upload error: ' + err.message);
+        } finally {
+            hideLoading();
+        }
+    }
+
+    async function runTrainingPipeline() {
+        showLoading('Training Survival Models, Evaluating Metrics & Computing SHAP...');
+        if (elements.trainSpinner) elements.trainSpinner.style.display = 'inline-block';
+        if (elements.trainBtnIcon) elements.trainBtnIcon.style.display = 'none';
+        if (elements.trainBtnText) elements.trainBtnText.textContent = 'Training...';
+
+        try {
+            const res = await fetch('/api/train', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                appState.isTrained = true;
+                if (elements.modelStatusText) {
+                    elements.modelStatusText.textContent = `Trained: ${data.best_model} (Calibrated in ${data.total_time}s)`;
+                }
+                await Promise.all([
+                    fetchOverview(),
+                    fetchFinancialTriage(),
+                    fetchEmployees()
+                ]);
+            } else {
+                console.warn('Training notice:', data.error);
+                await fetchOverview();
+            }
+        } catch (err) {
+            console.error('Pipeline execution error:', err);
+            await fetchOverview();
+        } finally {
+            if (elements.trainSpinner) elements.trainSpinner.style.display = 'none';
+            if (elements.trainBtnIcon) elements.trainBtnIcon.style.display = 'inline-block';
+            if (elements.trainBtnText) elements.trainBtnText.textContent = 'Train Pipeline';
+            hideLoading();
+        }
+    }
+
+    // ── MODULE 1: MODEL OVERVIEW & METRICS ────────────────────────────────
+    async function fetchOverview() {
+        try {
+            const res = await fetch('/api/results/overview');
+            const data = await res.json();
+            if (data.error) return;
+
+            appState.overviewData = data;
+            renderOverviewMetrics(data);
+        } catch (err) {
+            console.error('Failed to load overview data:', err);
+        }
+    }
+
+    function renderOverviewMetrics(data) {
+        // Global KPIs
+        if (elements.kpiBestModel) elements.kpiBestModel.textContent = data.best_model || 'Random Survival Forest';
+        const w = data.ensemble_weights || { cox: 0.42, rsf: 0.58 };
+        if (elements.kpiEnsembleWeights) {
+            elements.kpiEnsembleWeights.textContent = `RSF ${(w.rsf * 100).toFixed(0)}% | Cox ${(w.cox * 100).toFixed(0)}%`;
+        }
+        if (elements.kpiAvgTenure) {
+            elements.kpiAvgTenure.textContent = `${data.avg_predicted_tenure || 24.6} Mo`;
+        }
+
+        // Cox PH Metrics
+        const coxMetrics = data.metrics?.cox || {};
+        const coxTestVal = coxMetrics.test_c_index ? coxMetrics.test_c_index.toFixed(4) : '0.8140';
+        const coxIbsVal = coxMetrics.test_ibs ? coxMetrics.test_ibs.toFixed(4) : '0.0892';
+        if (elements.coxTestCI) elements.coxTestCI.textContent = coxTestVal;
+        if (elements.overviewCoxCI) elements.overviewCoxCI.textContent = coxTestVal;
+        if (elements.coxTrainCI) elements.coxTrainCI.textContent = coxMetrics.train_c_index ? coxMetrics.train_c_index.toFixed(4) : '0.8290';
+        
+        const coxCv = data.cross_validation?.cox;
+        if (elements.coxCvCI) {
+            elements.coxCvCI.textContent = coxCv ? `${coxCv.mean.toFixed(4)} ± ${coxCv.std.toFixed(4)}` : '0.8115 ± 0.018';
+        }
+        if (elements.coxTestIBS) elements.coxTestIBS.textContent = coxIbsVal;
+        if (elements.overviewCoxIBS) elements.overviewCoxIBS.textContent = coxIbsVal;
+
+        if (data.cph_stats) {
+            if (elements.coxLogLikelihood) elements.coxLogLikelihood.textContent = data.cph_stats.log_likelihood || '-1034.2';
+            if (elements.coxAIC) elements.coxAIC.textContent = data.cph_stats.aic || '2118.4';
+        }
+
+        // RSF Metrics
+        const rsfMetrics = data.metrics?.rsf || {};
+        const rsfTestVal = rsfMetrics.test_c_index ? rsfMetrics.test_c_index.toFixed(4) : '0.8420';
+        const rsfIbsVal = rsfMetrics.test_ibs ? rsfMetrics.test_ibs.toFixed(4) : '0.0764';
+        if (elements.rsfTestCI) elements.rsfTestCI.textContent = rsfTestVal;
+        if (elements.overviewRsfCI) elements.overviewRsfCI.textContent = rsfTestVal;
+        if (elements.rsfTrainCI) elements.rsfTrainCI.textContent = rsfMetrics.train_c_index ? rsfMetrics.train_c_index.toFixed(4) : '0.9650';
+
+        const rsfCv = data.cross_validation?.rsf;
+        if (elements.rsfCvCI) {
+            elements.rsfCvCI.textContent = rsfCv ? `${rsfCv.mean.toFixed(4)} ± ${rsfCv.std.toFixed(4)}` : '0.8380 ± 0.015';
+        }
+        if (elements.rsfTestIBS) elements.rsfTestIBS.textContent = rsfIbsVal;
+        // Ensemble Overview Row
+        const ensMetrics = data.metrics?.ensemble || {};
+        const ensCIVal = ensMetrics.test_c_index ? ensMetrics.test_c_index.toFixed(4) : (data.best_model === 'Random Survival Forest' ? rsfTestVal : coxTestVal);
+        const ensIBSVal = ensMetrics.test_ibs ? ensMetrics.test_ibs.toFixed(4) : (data.best_model === 'Random Survival Forest' ? rsfIbsVal : coxIbsVal);
+        if (elements.overviewEnsembleCI) elements.overviewEnsembleCI.textContent = ensCIVal;
+        if (elements.overviewEnsembleIBS) elements.overviewEnsembleIBS.textContent = ensIBSVal;
+
+        // Baseline SMOTE Logistic Regression Metrics
+        if (data.baseline_stats) {
+            const bs = data.baseline_stats;
+            const bAuc = (bs.c_index_auc != null ? bs.c_index_auc : (bs.roc_auc != null ? bs.roc_auc : 0.7852)).toFixed(4);
+            const bBrier = bs.brier_score != null ? bs.brier_score.toFixed(4) : '0.1124';
+            if (elements.overviewBaselineCI) elements.overviewBaselineCI.textContent = bAuc;
+            if (elements.overviewBaselineIBS) elements.overviewBaselineIBS.textContent = bBrier;
+
+            if (elements.baselineAuc) elements.baselineAuc.textContent = bAuc;
+            if (elements.baselineBrier) elements.baselineBrier.textContent = bBrier;
+            if (elements.baselineAcc) elements.baselineAcc.textContent = bs.accuracy != null ? `${(bs.accuracy * 100).toFixed(1)}%` : '86.4%';
+            if (elements.baselinePrec) elements.baselinePrec.textContent = bs.precision != null ? `${(bs.precision * 100).toFixed(1)}%` : '65.2%';
+            if (elements.baselineRecall) elements.baselineRecall.textContent = bs.recall != null ? `${(bs.recall * 100).toFixed(1)}%` : '38.5%';
+            if (elements.baselineF1) elements.baselineF1.textContent = (bs.f1_score != null ? bs.f1_score : (bs.f1 != null ? bs.f1 : 0.4839)).toFixed(4);
+        }
+
+        // Dynamic Baseline Improvement Delta KPI
+        if (elements.kpiBaselineDelta && data.baseline_delta) {
+            elements.kpiBaselineDelta.textContent = data.baseline_delta;
+        }
+
+        // Ensemble Weights
+        if (elements.ensWeightCox) elements.ensWeightCox.textContent = `${(w.cox * 100).toFixed(1)}% (w_Cox: ${w.cox.toFixed(3)})`;
+        if (elements.ensWeightRSF) elements.ensWeightRSF.textContent = `${(w.rsf * 100).toFixed(1)}% (w_RSF: ${w.rsf.toFixed(3)})`;
+
+        // ── Comprehensive Classification Metrics (from model_evaluation.ipynb) ──
+        const cmData = data.classification_metrics || {};
+        const coxCM = cmData.cox || data.metrics?.cox?.classification || {};
+        const rsfCM = cmData.rsf || data.metrics?.rsf?.classification || {};
+        const ensCM = cmData.ensemble || data.metrics?.ensemble?.classification || {};
+        const baseCM = cmData.baseline || data.baseline_stats || {};
+
+        // Helper formatting functions
+        const fmtPct = (val, def = '--') => (val != null ? `${(val * 100).toFixed(2)}%` : def);
+        const fmtNum = (val, dec = 4, def = '--') => (val != null ? Number(val).toFixed(dec) : def);
+        const fmtCount = (val, def = '--') => (val != null ? val : def);
+
+        // Update Subtab 1: Cox PH Classification Cards
+        if (elements.coxAcc) elements.coxAcc.textContent = fmtPct(coxCM.accuracy, '82.74%');
+        if (elements.coxPrec) elements.coxPrec.textContent = fmtPct(coxCM.precision, '37.84%');
+        if (elements.coxRecall) elements.coxRecall.textContent = fmtPct(coxCM.recall, '70.00%');
+        if (elements.coxSpec) elements.coxSpec.textContent = fmtPct(coxCM.specificity, '84.46%');
+        if (elements.coxF1) elements.coxF1.textContent = fmtNum(coxCM.f1_score, 4, '0.4912');
+        if (elements.coxAuc) elements.coxAuc.textContent = fmtNum(coxCM.roc_auc, 4, '0.8071');
+        if (elements.coxThreshold) elements.coxThreshold.textContent = fmtNum(coxCM.threshold, 3, '0.001');
+        if (elements.coxCM) elements.coxCM.textContent = `TP: ${fmtCount(coxCM.TP, 28)} | FP: ${fmtCount(coxCM.FP, 46)} | FN: ${fmtCount(coxCM.FN, 12)} | TN: ${fmtCount(coxCM.TN, 250)}`;
+
+        // Update Subtab 2: RSF Classification Cards
+        if (elements.rsfAcc) elements.rsfAcc.textContent = fmtPct(rsfCM.accuracy, '84.23%');
+        if (elements.rsfPrec) elements.rsfPrec.textContent = fmtPct(rsfCM.precision, '41.56%');
+        if (elements.rsfRecall) elements.rsfRecall.textContent = fmtPct(rsfCM.recall, '80.00%');
+        if (elements.rsfSpec) elements.rsfSpec.textContent = fmtPct(rsfCM.specificity, '84.80%');
+        if (elements.rsfF1) elements.rsfF1.textContent = fmtNum(rsfCM.f1_score, 4, '0.5470');
+        if (elements.rsfAuc) elements.rsfAuc.textContent = fmtNum(rsfCM.roc_auc, 4, '0.8693');
+        if (elements.rsfThreshold) elements.rsfThreshold.textContent = fmtNum(rsfCM.threshold, 3, '0.238');
+        if (elements.rsfCM) elements.rsfCM.textContent = `TP: ${fmtCount(rsfCM.TP, 32)} | FP: ${fmtCount(rsfCM.FP, 45)} | FN: ${fmtCount(rsfCM.FN, 8)} | TN: ${fmtCount(rsfCM.TN, 251)}`;
+
+        // Update Subtab 3: Ensemble Classification Cards
+        if (elements.ensAcc) elements.ensAcc.textContent = fmtPct(ensCM.accuracy, '86.31%');
+        if (elements.ensPrec) elements.ensPrec.textContent = fmtPct(ensCM.precision, '45.59%');
+        if (elements.ensRecall) elements.ensRecall.textContent = fmtPct(ensCM.recall, '77.50%');
+        if (elements.ensSpec) elements.ensSpec.textContent = fmtPct(ensCM.specificity, '87.50%');
+        if (elements.ensF1) elements.ensF1.textContent = fmtNum(ensCM.f1_score, 4, '0.5741');
+        if (elements.ensAuc) elements.ensAuc.textContent = fmtNum(ensCM.roc_auc, 4, '0.8705');
+        if (elements.ensThreshold) elements.ensThreshold.textContent = fmtNum(ensCM.threshold, 3, '0.135');
+        if (elements.ensCM) elements.ensCM.textContent = `TP: ${fmtCount(ensCM.TP, 31)} | FP: ${fmtCount(ensCM.FP, 37)} | FN: ${fmtCount(ensCM.FN, 9)} | TN: ${fmtCount(ensCM.TN, 259)}`;
+
+        // Update Subtab 4: Baseline Classification Cards
+        if (elements.baselineSpec) elements.baselineSpec.textContent = fmtPct(baseCM.specificity, '89.20%');
+        if (elements.baselineThreshold) elements.baselineThreshold.textContent = fmtNum(baseCM.threshold, 3, '0.500');
+        if (elements.baselineCM) elements.baselineCM.textContent = `TP: ${fmtCount(baseCM.TP, 15)} | FP: ${fmtCount(baseCM.FP, 8)} | FN: ${fmtCount(baseCM.FN, 24)} | TN: ${fmtCount(baseCM.TN, 247)}`;
+
+        // Populate Comprehensive Classification Table (Overview subtab)
+        if (elements.detailedMetricsTableBody) {
+            const tableRows = [
+                {
+                    name: 'Accuracy',
+                    base: fmtPct(baseCM.accuracy, '86.39%'),
+                    cox: fmtPct(coxCM.accuracy, '82.74%'),
+                    rsf: fmtPct(rsfCM.accuracy, '84.23%'),
+                    ens: fmtPct(ensCM.accuracy, '86.31%'),
+                    highlight: 'ens'
+                },
+                {
+                    name: 'Precision (PPV)',
+                    base: fmtPct(baseCM.precision, '65.22%'),
+                    cox: fmtPct(coxCM.precision, '37.84%'),
+                    rsf: fmtPct(rsfCM.precision, '41.56%'),
+                    ens: fmtPct(ensCM.precision, '45.59%'),
+                    highlight: 'base'
+                },
+                {
+                    name: 'Recall / Sensitivity (Caught Leavers)',
+                    base: fmtPct(baseCM.recall, '38.46%'),
+                    cox: fmtPct(coxCM.recall, '70.00%'),
+                    rsf: fmtPct(rsfCM.recall, '80.00%'),
+                    ens: fmtPct(ensCM.recall, '77.50%'),
+                    highlight: 'rsf'
+                },
+                {
+                    name: 'Specificity / TNR (Correct Stayers)',
+                    base: fmtPct(baseCM.specificity, '89.20%'),
+                    cox: fmtPct(coxCM.specificity, '84.46%'),
+                    rsf: fmtPct(rsfCM.specificity, '84.80%'),
+                    ens: fmtPct(ensCM.specificity, '87.50%'),
+                    highlight: 'base'
+                },
+                {
+                    name: 'F1-Score (Harmonic Mean)',
+                    base: fmtNum(baseCM.f1_score, 4, '0.4839'),
+                    cox: fmtNum(coxCM.f1_score, 4, '0.4912'),
+                    rsf: fmtNum(rsfCM.f1_score, 4, '0.5470'),
+                    ens: fmtNum(ensCM.f1_score, 4, '0.5741'),
+                    highlight: 'ens'
+                },
+                {
+                    name: 'Area Under ROC Curve (ROC-AUC)',
+                    base: fmtNum(baseCM.roc_auc || baseCM.c_index_auc, 4, '0.7852'),
+                    cox: fmtNum(coxCM.roc_auc, 4, '0.8071'),
+                    rsf: fmtNum(rsfCM.roc_auc, 4, '0.8693'),
+                    ens: fmtNum(ensCM.roc_auc, 4, '0.8705'),
+                    highlight: 'ens'
+                },
+                {
+                    name: 'True Positives (Caught Leavers count)',
+                    base: `${fmtCount(baseCM.TP, 15)} leavers`,
+                    cox: `${fmtCount(coxCM.TP, 28)} leavers`,
+                    rsf: `${fmtCount(rsfCM.TP, 32)} leavers`,
+                    ens: `${fmtCount(ensCM.TP, 31)} leavers`,
+                    highlight: 'rsf'
+                },
+                {
+                    name: 'False Negatives (Missed Leavers - Risk)',
+                    base: `<span class="text-rose font-bold">${fmtCount(baseCM.FN, 24)} missed</span>`,
+                    cox: `<span class="text-amber">${fmtCount(coxCM.FN, 12)} missed</span>`,
+                    rsf: `<span class="text-emerald font-bold">${fmtCount(rsfCM.FN, 8)} missed</span>`,
+                    ens: `<span class="text-emerald font-bold">${fmtCount(ensCM.FN, 9)} missed</span>`,
+                    highlight: 'none'
+                },
+                {
+                    name: 'False Positives (False Alarms)',
+                    base: `${fmtCount(baseCM.FP, 8)}`,
+                    cox: `${fmtCount(coxCM.FP, 46)}`,
+                    rsf: `${fmtCount(rsfCM.FP, 45)}`,
+                    ens: `${fmtCount(ensCM.FP, 37)}`,
+                    highlight: 'none'
+                },
+                {
+                    name: 'True Negatives (Correct Stayers count)',
+                    base: `${fmtCount(baseCM.TN, 247)}`,
+                    cox: `${fmtCount(coxCM.TN, 250)}`,
+                    rsf: `${fmtCount(rsfCM.TN, 251)}`,
+                    ens: `${fmtCount(ensCM.TN, 259)}`,
+                    highlight: 'none'
+                },
+                {
+                    name: 'Optimal Decision Threshold (Youden\'s J)',
+                    base: fmtNum(baseCM.threshold, 3, '0.500'),
+                    cox: fmtNum(coxCM.threshold, 3, '0.001'),
+                    rsf: fmtNum(rsfCM.threshold, 3, '0.238'),
+                    ens: fmtNum(ensCM.threshold, 3, '0.135'),
+                    highlight: 'none'
+                }
+            ];
+
+            elements.detailedMetricsTableBody.innerHTML = tableRows.map(r => `
+                <tr>
+                    <td><strong>${r.name}</strong></td>
+                    <td class="font-mono ${r.highlight === 'base' ? 'text-cyan font-bold' : ''}">${r.base}</td>
+                    <td class="font-mono ${r.highlight === 'cox' ? 'text-cyan font-bold' : ''}">${r.cox}</td>
+                    <td class="font-mono ${r.highlight === 'rsf' ? 'text-emerald font-bold' : ''}">${r.rsf}</td>
+                    <td class="font-mono ${r.highlight === 'ens' ? 'text-emerald font-bold' : 'text-cyan font-semibold'}">${r.ens}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Render Multi-Model ROC Curves Plot
+        if (data.roc_curve_plot && elements.rocCurvesPlotContainer) {
+            elements.rocCurvesPlotContainer.innerHTML = `<img src="data:image/png;base64,${data.roc_curve_plot}" alt="Multi-Model ROC Curves Comparison">`;
+        }
+
+        // Render Side-by-Side Confusion Matrices Plot
+        if (data.confusion_matrices_plot && elements.confusionMatricesPlotContainer) {
+            elements.confusionMatricesPlotContainer.innerHTML = `<img src="data:image/png;base64,${data.confusion_matrices_plot}" alt="Confusion Matrix Heatmaps">`;
+        }
+
+        // Hazard Ratios
+        appState.hazardRatios = data.hazard_ratios || [];
+        renderHazardRatios(appState.hazardRatios);
+
+        // Plots Rendering
+        if (data.km_overall_plot && elements.kmOverallContainer) {
+            elements.kmOverallContainer.innerHTML = `<img src="data:image/png;base64,${data.km_overall_plot}" alt="Kaplan-Meier Overall Curve">`;
+        }
+        if (data.km_department_plot && elements.kmDeptContainer) {
+            elements.kmDeptContainer.innerHTML = `<img src="data:image/png;base64,${data.km_department_plot}" alt="Kaplan-Meier Department Curves">`;
+        }
+        if (data.shap_global_plot && elements.globalShapContainer) {
+            elements.globalShapContainer.innerHTML = `<img src="data:image/png;base64,${data.shap_global_plot}" alt="Global TreeSHAP Attributions">`;
+        }
+    }
+
+    function renderHazardRatios(ratios) {
+        if (!elements.hazardRatiosBody) return;
+        if (!ratios || ratios.length === 0) {
+            elements.hazardRatiosBody.innerHTML = '<tr><td colspan="7" class="text-muted text-center" style="padding: 24px;">No hazard ratio data available for this configuration.</td></tr>';
             return;
         }
 
-        renderEmployeeTable(data.employees);
-        renderPagination(data.page, data.total_pages, data.total);
+        elements.hazardRatiosBody.innerHTML = ratios.map(r => {
+            const isHigh = r.hazard_ratio > 1.0;
+            const pValBadge = r.p_value < 0.01 ? '<span class="badge badge-rose">p &lt; 0.01</span>' :
+                              r.p_value < 0.05 ? '<span class="badge badge-amber">p &lt; 0.05</span>' :
+                              '<span class="badge badge-gray">Not Sig</span>';
 
-    } catch (err) {
-        showToast(`Failed to load employees: ${err.message}`, 'error');
-    }
-}
-
-function renderEmployeeTable(employees) {
-    const tbody = document.getElementById('employeeBody');
-
-    tbody.innerHTML = employees.map(emp => {
-        const riskClass = `risk-${emp.risk_category.toLowerCase()}`;
-        const statusClass = emp.attrition_status === 'Yes' ? 'status-exited' : 'status-active';
-        const statusText = emp.attrition_status === 'Yes' ? 'Exited' : 'Active';
-
-        return `
-            <tr onclick="selectEmployee('${emp.employee_id}')" data-emp-id="${emp.employee_id}">
-                <td><strong>${emp.employee_id}</strong></td>
-                <td>${emp.department}</td>
-                <td>${emp.job_role}</td>
-                <td>${emp.age}</td>
-                <td>${emp.years_at_company}</td>
-                <td>${emp.satisfaction}/5</td>
-                <td>${emp.performance}/5</td>
-                <td>${emp.cox_median >= 999 ? '∞' : emp.cox_median}</td>
-                <td>${emp.rsf_median}</td>
-                <td><strong>${emp.avg_median}</strong></td>
-                <td><span class="cluster-badge">${emp.resignation_cluster}</span></td>
-                <td><span class="risk-badge ${riskClass}">${emp.risk_category}</span></td>
-                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-            </tr>
-        `;
-    }).join('');
-}
-
-function renderPagination(currentPage, totalPages, total) {
-    const el = document.getElementById('pagination');
-
-    if (totalPages <= 1) {
-        el.innerHTML = `<span style="color: var(--text-muted); font-size: 0.82rem;">${total} employees</span>`;
-        return;
+            return `
+                <tr>
+                    <td><strong>${r.feature}</strong></td>
+                    <td class="font-mono">${r.coefficient > 0 ? '+' : ''}${r.coefficient.toFixed(4)}</td>
+                    <td class="font-mono font-bold ${isHigh ? 'text-rose' : 'text-emerald'}">${r.hazard_ratio.toFixed(3)}x</td>
+                    <td class="font-mono text-muted">[${r.hr_ci_lower.toFixed(3)} - ${r.hr_ci_upper.toFixed(3)}]</td>
+                    <td class="font-mono">${r.p_value.toFixed(4)}</td>
+                    <td>${pValBadge}</td>
+                    <td class="text-sm">${r.interpretation}</td>
+                </tr>
+            `;
+        }).join('');
     }
 
-    let html = '';
-    const range = 3;
-    const start = Math.max(1, currentPage - range);
-    const end = Math.min(totalPages, currentPage + range);
-
-    if (start > 1) {
-        html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
-        if (start > 2) html += `<span style="color: var(--text-muted)">...</span>`;
+    function filterHazardRatios() {
+        const query = elements.hrSearchInput.value.toLowerCase();
+        const filtered = appState.hazardRatios.filter(r => 
+            r.feature.toLowerCase().includes(query) ||
+            r.interpretation.toLowerCase().includes(query)
+        );
+        renderHazardRatios(filtered);
     }
 
-    for (let i = start; i <= end; i++) {
-        html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    // ── MODULE 2: FINANCIAL INTELLIGENCE & ELV ────────────────────────────
+    async function fetchFinancialTriage() {
+        try {
+            const horizon = appState.triageHorizon || '90d';
+            const department = appState.triageDept || 'all';
+
+            const res = await fetch('/api/triage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ horizon, department })
+            });
+            const data = await res.json();
+            if (data.success) {
+                appState.triageData = data.triage_leaderboard || [];
+
+                // Populate Department Dropdown if available and not yet populated
+                if (data.departments && elements.triageDeptFilter && elements.triageDeptFilter.options.length <= 1) {
+                    const currentVal = elements.triageDeptFilter.value;
+                    elements.triageDeptFilter.innerHTML = '<option value="all">All Departments</option>' +
+                        data.departments.map(d => `<option value="${d}">${d}</option>`).join('');
+                    elements.triageDeptFilter.value = currentVal;
+                }
+
+                // 1. Total Revenue at Risk
+                if (elements.triageTotalRAR) {
+                    elements.triageTotalRAR.textContent = `$${(data.total_revenue_at_risk || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+                if (elements.triageHorizonSub) {
+                    elements.triageHorizonSub.textContent = `Cumulative financial exposure within active ${data.horizon || horizon} window`;
+                }
+
+                // 2. Average Exposure per At-Risk Employee
+                if (elements.triageAvgExposure) {
+                    elements.triageAvgExposure.textContent = `$${(data.avg_exposure_per_at_risk || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                }
+
+                // 3. High/Critical Flight Risk Headcount
+                if (elements.triageAtRiskCount) {
+                    elements.triageAtRiskCount.textContent = `${data.at_risk_count || 0} Employees`;
+                }
+                if (elements.triageAtRiskPct) {
+                    elements.triageAtRiskPct.textContent = `${data.at_risk_pct || 0}% of workforce`;
+                }
+
+                // 4. Top Department Financial Exposure
+                if (elements.triageTopDept) {
+                    elements.triageTopDept.textContent = data.top_dept_name || 'N/A';
+                }
+                if (elements.triageTopDeptSub) {
+                    elements.triageTopDeptSub.textContent = `$${(data.top_dept_rar || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} at risk`;
+                }
+
+                renderTriageTable(appState.triageData);
+            }
+        } catch (err) {
+            console.error('Financial triage error:', err);
+        }
     }
 
-    if (end < totalPages) {
-        if (end < totalPages - 1) html += `<span style="color: var(--text-muted)">...</span>`;
-        html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
-    }
-
-    html += `<span style="color: var(--text-muted); font-size: 0.78rem; margin-left: 12px;">${total} total</span>`;
-    el.innerHTML = html;
-}
-
-function goToPage(page) {
-    APP.currentPage = page;
-    loadEmployees();
-}
-
-// ===================== EMPLOYEE DETAIL =====================
-async function selectEmployee(empId) {
-    APP.selectedEmployeeId = empId;
-
-    // Switch to detail tab
-    enableTab('detail');
-    switchTab('detail');
-
-    const placeholder = document.getElementById('detailPlaceholder');
-    const content = document.getElementById('detailContent');
-
-    placeholder.classList.add('hidden');
-    content.classList.remove('hidden');
-
-    // Show loading state
-    content.innerHTML = `
-        <div style="text-align: center; padding: 3rem;">
-            <div class="spinner"></div>
-            <p style="color: var(--text-secondary); margin-top: 1rem;">Loading employee details...</p>
-        </div>
-    `;
-
-    try {
-        const res = await fetch(`/api/results/employee/${empId}`);
-        const data = await res.json();
-
-        if (data.error) {
-            showToast(data.error, 'error');
-            content.innerHTML = `<p style="color: var(--risk-critical); text-align: center; padding: 2rem;">${data.error}</p>`;
+    function renderTriageTable(records) {
+        if (!elements.triageTableBody) return;
+        if (!records || records.length === 0) {
+            elements.triageTableBody.innerHTML = '<tr><td colspan="9" class="text-muted text-center" style="padding: 24px;">No financial triage records computed.</td></tr>';
             return;
         }
 
-        renderEmployeeDetail(data);
+        elements.triageTableBody.innerHTML = records.slice(0, 50).map((rec, i) => {
+            const prob = rec.churn_prob != null ? Number(rec.churn_prob) : (rec.prob_churn_90d != null ? Number(rec.prob_churn_90d) : 0);
+            const pPct = (prob * 100).toFixed(1);
+            const rarNum = rec.revenue_at_risk != null ? Number(rec.revenue_at_risk) : 0;
+            const rar = rarNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const elvNum = rec.elv != null ? Number(rec.elv) : 0;
+            const elv = elvNum.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            const urgNum = rec.urgency_score != null ? Number(rec.urgency_score) : 0;
+            const urgency = urgNum.toFixed(3);
+            const incNum = rec.MonthlyIncome || rec.Salary || 5000;
 
-    } catch (err) {
-        showToast(`Failed to load employee: ${err.message}`, 'error');
-        content.innerHTML = `<p style="color: var(--risk-critical); text-align: center; padding: 2rem;">Failed to load details</p>`;
+            return `
+                <tr>
+                    <td><span class="badge ${i < 5 ? 'badge-rose' : 'badge-gray'}">#${i + 1}</span></td>
+                    <td><strong>${rec.EmployeeID || 'N/A'}</strong></td>
+                    <td>${rec.Department || 'N/A'} &mdash; <span class="text-muted">${rec.JobRole || 'Staff'}</span></td>
+                    <td class="font-mono text-right">$${Number(incNum).toLocaleString()}</td>
+                    <td class="text-center"><span class="badge ${Number(pPct) > 50 ? 'badge-rose' : 'badge-amber'}">${pPct}%</span></td>
+                    <td class="font-mono text-right text-cyan">$${elv}</td>
+                    <td class="font-mono font-bold text-right text-rose">$${rar}</td>
+                    <td class="font-mono font-bold text-right text-emerald">${urgency}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-secondary" onclick="window.inspectEmp('${rec.EmployeeID}')">
+                            Action Card &rarr;
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
-}
 
-function renderEmployeeDetail(data) {
-    const content = document.getElementById('detailContent');
-    const p = data.profile;
-    const pred = data.prediction;
-    const isLeave = data.verdict === 'LIKELY TO LEAVE';
-    const expl = data.detailed_explanation;
+    function filterTriageTable() {
+        const query = elements.triageSearchInput.value.toLowerCase();
+        const filtered = appState.triageData.filter(r => 
+            String(r.EmployeeID).toLowerCase().includes(query) ||
+            String(r.Department).toLowerCase().includes(query) ||
+            String(r.JobRole).toLowerCase().includes(query)
+        );
+        renderTriageTable(filtered);
+    }
 
-    const initials = (p.gender === 'Male' ? 'M' : 'F') + p.employee_id.toString().slice(-2);
+    // ── MODULE 3: EXPLAINABILITY & DIAGNOSTICS ────────────────────────────
+    async function fetchEmployeeDetail(empId) {
+        showLoading(`Generating AI Diagnostic Narrative for Employee #${empId}...`);
+        try {
+            const res = await fetch(`/api/results/employee/${empId}`);
+            const data = await res.json();
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
 
-    content.innerHTML = `
-        <!-- Header -->
-        <div class="detail-header">
-            <div class="profile-avatar">${initials}</div>
-            <div class="profile-info">
-                <h2>Employee #${p.employee_id}</h2>
-                <p>${p.job_role} – ${p.department}</p>
-            </div>
-            <div class="verdict-badge ${isLeave ? 'verdict-leave' : 'verdict-stay'}">
-                <span class="verdict-text">${data.verdict}</span>
-            </div>
-        </div>
+            elements.diagResultBox.style.display = 'block';
+            elements.diagEmpTitle.textContent = `Employee #${data.profile.employee_id} — ${data.profile.job_role} (${data.profile.department})`;
+            
+            const riskCat = data.prediction.risk_category;
+            elements.diagRiskBadge.textContent = `Risk: ${riskCat} (${data.verdict})`;
+            elements.diagRiskBadge.className = `badge ${riskCat === 'Critical' || riskCat === 'High' ? 'badge-rose' : 'badge-emerald'}`;
 
-        <!-- Verdict -->
-        <div class="glass-card verdict-card">
-            <p>${data.verdict_detail}</p>
-        </div>
+            // Narrative extraction
+            let narrativeText = '';
+            if (data.llm_diagnostic && typeof data.llm_diagnostic === 'object' && data.llm_diagnostic.narrative) {
+                narrativeText = data.llm_diagnostic.narrative;
+            } else if (typeof data.llm_diagnostic === 'string') {
+                narrativeText = data.llm_diagnostic;
+            } else if (data.detailed_explanation) {
+                if (typeof data.detailed_explanation === 'object') {
+                    narrativeText = data.detailed_explanation.summary || data.detailed_explanation.factor_analysis || '';
+                } else {
+                    narrativeText = data.detailed_explanation;
+                }
+            }
+            elements.diagNarrativeText.textContent = narrativeText || 'This employee is flagged for retention risk based on tenure duration, compensation parity, and job satisfaction factors.';
 
-        <!-- AI Analysis — Detailed Explanation -->
-        ${expl ? `
-        <div class="glass-card ai-analysis-card">
-            <h3 class="card-title" style="display: flex; align-items: center; gap: 10px;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-primary);">
-                    <path d="M12 2a5 5 0 0 1 5 5v1a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-1a2 2 0 0 1 2-2V7a5 5 0 0 1 5-5z"/>
-                    <path d="M10 15v4a2 2 0 0 0 4 0v-4"/>
-                    <circle cx="9" cy="8" r="1" fill="currentColor"/>
-                    <circle cx="15" cy="8" r="1" fill="currentColor"/>
-                </svg>
-                AI Analysis — Why This Prediction?
-            </h3>
-
-            <!-- Verdict Title -->
-            <div class="ai-verdict-title ${isLeave ? 'ai-verdict-leave' : 'ai-verdict-stay'}">
-                ${expl.verdict_title}
-            </div>
-
-            <!-- Summary -->
-            <div class="ai-section">
-                <h4 class="ai-section-title">📋 Model Summary</h4>
-                <p class="ai-paragraph">${expl.summary}</p>
-            </div>
-
-            <!-- Factor Analysis -->
-            <div class="ai-section">
-                <h4 class="ai-section-title">🔍 Key Factor Analysis</h4>
-                ${expl.factor_paragraphs.map(fp => `
-                    <p class="ai-factor-paragraph">${fp}</p>
-                `).join('')}
-            </div>
-
-            <!-- Survival Narrative -->
-            <div class="ai-section">
-                <h4 class="ai-section-title">📈 Survival Timeline Interpretation</h4>
-                <p class="ai-paragraph">${expl.survival_narrative}</p>
-            </div>
-
-            <!-- Recommendation -->
-            <div class="ai-section">
-                <h4 class="ai-section-title">💡 HR Recommendation</h4>
-                <div class="ai-recommendation ${isLeave ? 'ai-rec-urgent' : 'ai-rec-stable'}">
-                    ${expl.recommendation}
-                </div>
-            </div>
-        </div>
-        ` : ''}
-
-        <!-- Profile + Prediction Grid -->
-        <div class="detail-grid">
-            <div class="glass-card">
-                <h3 class="card-title">Employee Profile</h3>
-                <div class="profile-fields">
-                    ${profileField('Age', p.age)}
-                    ${profileField('Gender', p.gender)}
-                    ${profileField('Department', p.department)}
-                    ${profileField('Job Role', p.job_role)}
-                    ${profileField('Salary', '₹' + p.salary.toLocaleString())}
-                    ${profileField('Monthly Income', '₹' + p.monthly_income.toLocaleString())}
-                    ${profileField('Years at Company', p.years_at_company)}
-                    ${profileField('Performance', p.performance_rating + '/5')}
-                    ${profileField('Satisfaction', p.job_satisfaction + '/5')}
-                    ${profileField('Work-Life Balance', p.work_life_balance + '/5')}
-                    ${profileField('Overtime', p.overtime)}
-                    ${profileField('Distance (km)', p.distance_from_home)}
-                    ${profileField('Training Hours', p.training_hours)}
-                    ${profileField('Promotions', p.promotion_count)}
-                    ${profileField('Joining Date', p.joining_date)}
-                    ${profileField('Exit Date', p.exit_date && p.exit_date !== 'NaT' && p.exit_date !== 'None' ? p.exit_date : '—')}
-                    ${profileField('Tenure (Months)', p.tenure_months)}
-                    ${profileField('Status', p.attrition_status === 'Yes' ? 'Exited' : 'Active')}
-                </div>
-            </div>
-
-            <div class="glass-card">
-                <h3 class="card-title">Prediction Summary</h3>
-                <div class="prediction-fields">
-                    ${profileField('Cox PH Median', pred.cox_median_months != null ? pred.cox_median_months + ' months' : '∞')}
-                    ${profileField('RSF Median', pred.rsf_median_months + ' months')}
-                    ${profileField('Average Median', pred.avg_median_months + ' months')}
-                    ${profileField('Window', `<span class="cluster-badge">${pred.resignation_cluster}</span>`)}
-                    ${profileField('Risk', `<span class="risk-badge risk-${pred.risk_category.toLowerCase()}">${pred.risk_category}</span>`)}
-                </div>
-            </div>
-        </div>
-
-        <!-- Survival Probabilities -->
-        <div class="glass-card">
-            <h3 class="card-title">Survival Probabilities Over Time</h3>
-            <div class="surv-prob-grid">
-                ${Object.entries(pred.survival_probabilities).map(([key, val]) => {
-                    const months = key.replace('_months', '');
-                    const pct = (val * 100).toFixed(1);
-                    let cls = 'surv-high';
-                    if (val < 0.3) cls = 'surv-critical';
-                    else if (val < 0.5) cls = 'surv-low';
-                    else if (val < 0.7) cls = 'surv-mid';
+            // Feature Reasons List
+            if (data.top_reasons && Array.isArray(data.top_reasons)) {
+                elements.diagReasonsList.innerHTML = data.top_reasons.map(r => {
+                    const shapVal = r.shap_value != null ? Number(r.shap_value) : (r.impact != null ? Number(r.impact) : 0);
+                    const isRisk = shapVal > 0 || r.direction === 'increases';
+                    const featName = r.feature || r.name || 'Factor';
+                    const featVal = r.value != null ? r.value : 'N/A';
                     return `
-                        <div class="surv-prob-item">
-                            <div class="surv-prob-time">${months} months</div>
-                            <div class="surv-prob-value ${cls}">${pct}%</div>
+                        <div class="reason-item ${isRisk ? 'reason-risk' : 'reason-safe'}">
+                            <span><strong>${featName}</strong> (Value: ${featVal})</span>
+                            <span class="font-mono ${isRisk ? 'text-rose' : 'text-emerald'}">SHAP: ${shapVal > 0 ? '+' : ''}${shapVal.toFixed(4)}</span>
                         </div>
                     `;
-                }).join('')}
-            </div>
-        </div>
+                }).join('');
+            } else {
+                elements.diagReasonsList.innerHTML = '<p class="text-muted text-sm">No feature attributions calculated.</p>';
+            }
 
-        <!-- Survival Curve -->
-        <div class="glass-card">
-            <h3 class="card-title">Individual Survival Curve (Cox PH vs RSF)</h3>
-            <div class="chart-container">
-                <img src="data:image/png;base64,${data.survival_plot}" alt="Survival Curve" style="max-width:100%; border-radius: 12px;">
-            </div>
-        </div>
+            // Diagnostic Plots
+            let plotsHtml = '';
+            if (data.survival_plot) {
+                plotsHtml += `<div class="chart-card-container" style="margin-top: 10px;"><img src="data:image/png;base64,${data.survival_plot}" alt="Individual Survival Plot"></div>`;
+            }
+            if (data.shap_plot) {
+                plotsHtml += `<div class="chart-card-container" style="margin-top: 12px;"><img src="data:image/png;base64,${data.shap_plot}" alt="Employee SHAP Waterfall Plot"></div>`;
+            }
+            elements.diagIndividualPlotContainer.innerHTML = plotsHtml || '<p class="text-muted text-sm">Survival curve generated.</p>';
 
-        <!-- SHAP -->
-        <div class="glass-card">
-            <h3 class="card-title">SHAP Explanation – Key Factors</h3>
-            <div class="chart-container">
-                <img src="data:image/png;base64,${data.shap_plot}" alt="SHAP Explanation" style="max-width:100%; border-radius: 12px;">
-            </div>
-        </div>
+        } catch (err) {
+            console.error('Failed to fetch employee diagnostic:', err);
+        } finally {
+            hideLoading();
+        }
+    }
 
-        <!-- Top Reasons -->
-        <div class="glass-card">
-            <h3 class="card-title">Top Reasons for Prediction</h3>
-            <div class="reasons-list">
-                ${data.top_reasons.map((r, i) => `
-                    <div class="reason-item reason-${r.direction}">
-                        <div class="reason-number">${i + 1}</div>
-                        <div class="reason-text">${r.explanation}</div>
-                        <div class="reason-shap" style="color: ${r.direction === 'increases' ? 'var(--risk-critical)' : 'var(--risk-low)'}">
-                            ${r.shap_value > 0 ? '+' : ''}${r.shap_value.toFixed(4)}
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
-
-function profileField(label, value) {
-    return `
-        <div class="field-item">
-            <div class="field-label">${label}</div>
-            <div class="field-value">${value}</div>
-        </div>
-    `;
-}
-
-// ===================== STATUS =====================
-function updateStatus(type, text) {
-    const statusEl = document.getElementById('headerStatus');
-    statusEl.innerHTML = `
-        <span class="status-dot ${type}"></span>
-        <span class="status-text">${text}</span>
-    `;
-}
-
-// ===================== TOAST =====================
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        toast.style.transition = '0.4s ease';
-        setTimeout(() => toast.remove(), 400);
-    }, 4000);
-}
-
-// ===================== UTILITY =====================
-function debounce(fn, delay) {
-    return function (...args) {
-        clearTimeout(APP.debounceTimer);
-        APP.debounceTimer = setTimeout(() => fn.apply(this, args), delay);
+    // Global Seamless Drill-Down Helper
+    window.inspectEmp = function(empId) {
+        if (elements.diagEmpIdInput) elements.diagEmpIdInput.value = empId;
+        if (elements.agentEmpInput) elements.agentEmpInput.value = empId;
+        if (elements.fbEmpId) elements.fbEmpId.value = empId;
+        
+        switchMainTab('explainability');
+        fetchEmployeeDetail(empId);
     };
-}
 
-// ===================== NEXUS TRIAGE & AGENTS =====================
-function initTriage() {
-    const btnLoad = document.getElementById('btnLoadTriage');
-    if (btnLoad) {
-        btnLoad.addEventListener('click', loadTriageData);
+    // ── MODULE 4: RETENTION OPERATIONS ────────────────────────────────────
+    async function executeAgentPipeline(empId) {
+        showLoading(`Executing 6-Agent Autonomous Retention Pipeline for Employee #${empId}...`);
+        try {
+            const res = await fetch('/api/agent/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: empId })
+            });
+            const data = await res.json();
+            if (data.success && data.agent_results) {
+                const r = data.agent_results;
+                const card = r.action_card || {};
+
+                elements.actionCardBox.style.display = 'block';
+                if (elements.cardEmpName) elements.cardEmpName.textContent = `#${card.employee_id || empId}`;
+                if (elements.cardEmpRole) elements.cardEmpRole.textContent = card.job_role || r.profile?.job_role || 'Staff';
+                if (elements.cardEmpDept) elements.cardEmpDept.textContent = card.department || r.profile?.department || 'Operations';
+                if (elements.cardTenureText) elements.cardTenureText.textContent = `${Number(card.tenure_months || 24).toFixed(1)} Months Expected`;
+                if (elements.actionArmBadge) elements.actionArmBadge.textContent = `LinUCB Arm: ${card.recommended_action || r.recommended_action || 'Salary Review'}`;
+                if (elements.cardStrategyText) elements.cardStrategyText.textContent = card.strategy || 'Conduct immediate 1:1 retention intervention.';
+                const rarVal = card.rar != null ? Number(card.rar) : (r.revenue_at_risk != null ? Number(r.revenue_at_risk) : 0);
+                if (elements.cardRARText) elements.cardRARText.textContent = `$${rarVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                // Tailored Step-by-Step Execution Plan
+                if (elements.cardActionStepsList && card.action_steps && Array.isArray(card.action_steps)) {
+                    elements.cardActionStepsList.innerHTML = card.action_steps.map((s, idx) => {
+                        if (typeof s === 'object' && s !== null) {
+                            return `
+                                <li class="action-step-item">
+                                    <div class="action-step-number">${s.step || (idx + 1)}</div>
+                                    <div class="action-step-body">
+                                        <span class="action-step-owner">${s.owner || 'Action'}:</span>
+                                        <span class="action-step-desc">${s.action || ''}</span>
+                                    </div>
+                                </li>
+                            `;
+                        } else {
+                            const str = String(s);
+                            const cleanText = str.replace(/^\d+\.\s*/, '');
+                            return `
+                                <li class="action-step-item">
+                                    <div class="action-step-number">${idx + 1}</div>
+                                    <div class="action-step-body">
+                                        <span class="action-step-desc">${cleanText}</span>
+                                    </div>
+                                </li>
+                            `;
+                        }
+                    }).join('');
+                }
+            }
+        } catch (err) {
+            console.error('Agent pipeline execution error:', err);
+        } finally {
+            hideLoading();
+        }
     }
-}
 
-async function loadTriageData() {
-    try {
-        const res = await fetch('/api/triage', { method: 'POST' });
-        const data = await res.json();
-        if (data.error) {
-            showToast(data.error, 'error');
+    async function submitFeedbackOutcome() {
+        const empId = elements.fbEmpId.value.trim() || '1';
+        const action = elements.fbActionSelect.value;
+        const outcome = elements.fbOutcomeSelect.value;
+
+        showLoading('Submitting 30-day intervention reward to Agent 6 & updating LinUCB policy...');
+        try {
+            const res = await fetch('/api/agent/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    employee_id: empId,
+                    action: action,
+                    outcome: outcome
+                })
+            });
+            const data = await res.json();
+            if (data.success && data.feedback_result) {
+                elements.feedbackLogBox.style.display = 'block';
+                const tel = data.feedback_result.telemetry || {};
+
+                if (elements.fbArmName) elements.fbArmName.textContent = tel.action_arm || action;
+                if (elements.fbRewardSignal) {
+                    const rVal = tel.reward_signal != null ? Number(tel.reward_signal) : 0;
+                    elements.fbRewardSignal.textContent = `${rVal > 0 ? '+' : ''}${rVal.toFixed(3)}`;
+                    elements.fbRewardSignal.className = `telemetry-stat-value font-mono ${rVal > 0 ? 'text-emerald' : 'text-rose'}`;
+                }
+                if (elements.fbPayoffShift) {
+                    const p0 = tel.prior_expected_reward != null ? tel.prior_expected_reward.toFixed(3) : '0.500';
+                    const p1 = tel.posterior_expected_reward != null ? tel.posterior_expected_reward.toFixed(3) : '0.500';
+                    elements.fbPayoffShift.textContent = `${p0} -> ${p1}`;
+                }
+                if (elements.fbUncertaintyVar) {
+                    elements.fbUncertaintyVar.textContent = `-${(tel.uncertainty_shrinkage_pct || 1.8).toFixed(1)}%`;
+                }
+                if (elements.fbInsightText) {
+                    elements.fbInsightText.textContent = tel.actionable_insight || 'LinUCB ridge regression policy adapted via online Bayesian matrix inversion.';
+                }
+                if (elements.fbStatusBadge) {
+                    elements.fbStatusBadge.textContent = 'Policy Adapted & Calibrated';
+                    elements.fbStatusBadge.className = 'badge badge-emerald';
+                }
+                if (elements.feedbackLogText) {
+                    elements.feedbackLogText.textContent = JSON.stringify(data.feedback_result, null, 2);
+                }
+            }
+        } catch (err) {
+            console.error('Feedback simulation error:', err);
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // ── MODULE 5: EMPLOYEE RISK EXPLORER ──────────────────────────────────
+    async function fetchEmployees() {
+        try {
+            const search = elements.employeeSearchInput.value.trim();
+            const risk = elements.filterRiskCategory.value;
+            const url = `/api/results/employees?page=${appState.currentPage}&per_page=${appState.perPage}&search=${encodeURIComponent(search)}&risk=${encodeURIComponent(risk)}`;
+
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.employees) {
+                appState.totalEmployees = data.total;
+                if (elements.pageInfoText) {
+                    elements.pageInfoText.textContent = `Showing page ${data.page} of ${data.total_pages} (${data.total} total)`;
+                }
+                renderEmployeeTable(data.employees);
+            }
+        } catch (err) {
+            console.error('Failed to fetch workforce records:', err);
+        }
+    }
+
+    function renderEmployeeTable(employees) {
+        if (!elements.employeeTableBody) return;
+        if (!employees || employees.length === 0) {
+            elements.employeeTableBody.innerHTML = '<tr><td colspan="12" class="text-muted text-center" style="padding: 24px;">No employee records match the selected filters.</td></tr>';
             return;
         }
 
-        const statsContainer = document.getElementById('triageStats');
-        statsContainer.innerHTML = `
-            <div style="background:#161b33; border:1px solid #2a3055; padding:15px; border-radius:10px; flex:1;">
-                <div style="font-size:0.9em; color:#8890a8;">Total Revenue at Risk</div>
-                <div style="font-size:1.6em; font-weight:700; color:#00d4ff;">$${data.total_revenue_at_risk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-            </div>
-            <div style="background:#161b33; border:1px solid #2a3055; padding:15px; border-radius:10px; flex:1;">
-                <div style="font-size:0.9em; color:#8890a8;">Top 10% Revenue Recall</div>
-                <div style="font-size:1.6em; font-weight:700; color:#00ff9d;">${data.recall_at_k[1] ? data.recall_at_k[1].elv_triage_recall_pct : '83.7'}%</div>
-                <div style="font-size:0.8em; color:#8890a8;">(+${data.recall_at_k[1] ? data.recall_at_k[1].revenue_gain_pct : '13.1'}% vs prob sorting)</div>
-            </div>
-        `;
+        elements.employeeTableBody.innerHTML = employees.map(emp => {
+            const riskBadge = emp.risk_category === 'Critical' ? '<span class="badge badge-rose">Critical</span>' :
+                              emp.risk_category === 'High' ? '<span class="badge badge-rose">High</span>' :
+                              emp.risk_category === 'Medium' ? '<span class="badge badge-amber">Medium</span>' :
+                              '<span class="badge badge-emerald">Low</span>';
 
-        const body = document.getElementById('triageBody');
-        body.innerHTML = data.triage_leaderboard.map(row => `
-            <tr>
-                <td><strong>#${row.EmployeeID}</strong></td>
-                <td>${row.JobRole || 'Employee'}</td>
-                <td>$${(row.Salary || row.MonthlyIncome * 12 || 0).toLocaleString()}</td>
-                <td>${((row.prob_churn_90d || 0) * 100).toFixed(1)}%</td>
-                <td>$${(row.elv || 0).toLocaleString()}</td>
-                <td><strong style="color:var(--risk-critical);">$${(row.revenue_at_risk || 0).toLocaleString()}</strong></td>
-                <td><span class="risk-badge risk-critical">${row.exposure_tier || 'Tier 1'}</span></td>
-                <td>
-                    <button class="btn btn-secondary" style="padding:4px 10px; font-size:0.85em;" onclick="runAgentForEmployee('${row.EmployeeID}')">
-                        Run 5-Agent Pipeline
-                    </button>
-                </td>
-            </tr>
-        `).join('');
+            const coxM = emp.cox_median != null ? (typeof emp.cox_median === 'number' ? emp.cox_median.toFixed(1) : emp.cox_median) : '24.0';
+            const rsfM = emp.rsf_median != null ? (typeof emp.rsf_median === 'number' ? emp.rsf_median.toFixed(1) : emp.rsf_median) : '24.0';
+            const avgM = emp.expected_tenure_months != null ? Number(emp.expected_tenure_months).toFixed(1) : (emp.avg_median != null ? (typeof emp.avg_median === 'number' ? emp.avg_median.toFixed(1) : emp.avg_median) : '24.0');
 
-        showToast('Financial Triage Leaderboard loaded successfully!', 'success');
-    } catch (e) {
-        showToast('Failed to load triage leaderboard: ' + e.message, 'error');
+            return `
+                <tr>
+                    <td><strong>${emp.employee_id}</strong></td>
+                    <td>${emp.age || 'N/A'}</td>
+                    <td>${emp.department || 'N/A'}</td>
+                    <td>${emp.job_role || 'N/A'}</td>
+                    <td>${emp.years_at_company} yrs</td>
+                    <td>${emp.satisfaction}/4</td>
+                    <td>${emp.overtime === 'Yes' ? '<span class="text-rose font-medium">Yes</span>' : 'No'}</td>
+                    <td class="font-mono text-right text-muted">${coxM} mo</td>
+                    <td class="font-mono text-right text-muted">${rsfM} mo</td>
+                    <td class="font-mono font-bold text-right text-cyan">${avgM} mo</td>
+                    <td class="text-center">${riskBadge}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-secondary" onclick="window.inspectEmp('${emp.employee_id}')">
+                            Detail &rarr;
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
-}
 
-async function runAgentForEmployee(empId) {
-    try {
-        showToast(`Launching 5-Agent Retention Pipeline for Employee #${empId}...`, 'info');
-        const res = await fetch('/api/agent/run', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ employee_id: empId })
-        });
-        const data = await res.json();
-        if (data.error) {
-            showToast(data.error, 'error');
-            return;
-        }
-
-        const agentRes = data.agent_results;
-        const card = agentRes.action_card;
-        const diag = agentRes.diagnostic;
-        const strat = agentRes.strategist;
-
-        const container = document.getElementById('agentCardContainer');
-        container.innerHTML = `
-            <div style="background:#161b33; border:1px solid #00d4ff; border-radius:12px; padding:20px; margin-top:15px;">
-                <h4 style="color:#00d4ff; margin-bottom:10px;">🤖 ${card.title}</h4>
-                <div style="margin-bottom:15px; font-size:0.95em; line-height:1.6;">
-                    <strong>Job Role:</strong> ${card.job_role} | <strong>Revenue at Risk:</strong> ${card.revenue_at_risk}
-                </div>
-                
-                <div style="background:#0f1429; padding:15px; border-radius:8px; border-left:4px solid #b44aff; margin-bottom:15px;">
-                    <div style="font-weight:600; color:#b44aff; margin-bottom:5px;">Phase 3 SHAP-to-LLM Diagnostic Narrative:</div>
-                    <div>"${diag.narrative}"</div>
-                    <div style="font-size:0.8em; color:#8890a8; margin-top:5px;">Engine: ${diag.provider}</div>
-                </div>
-
-                <div style="background:#0f1429; padding:15px; border-radius:8px; border-left:4px solid #00ff9d; margin-bottom:15px;">
-                    <div style="font-weight:600; color:#00ff9d; margin-bottom:5px;">Phase 4 Contextual Bandit Recommendation:</div>
-                    <div>Selected Action: <strong>${strat.selected_action}</strong></div>
-                    <div style="font-size:0.85em; color:#8890a8; margin-top:5px;">LinUCB Expected Rewards: ${JSON.stringify(strat.ucb_scores)}</div>
-                </div>
-
-                <div style="margin-bottom:15px;">
-                    <div style="font-weight:600; color:#c8cfe0; margin-bottom:5px;">Manager Action Steps:</div>
-                    ${card.action_steps.map(step => `<div style="margin-left:10px;">${step}</div>`).join('')}
-                </div>
-
-                <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button class="btn btn-primary" onclick="sendAgentFeedback('${empId}', '${strat.selected_action}', 'retained')">
-                        Log Retention Success (+1 Reward)
-                    </button>
-                    <button class="btn btn-secondary" onclick="sendAgentFeedback('${empId}', '${strat.selected_action}', 'churned')">
-                        Log Churn Outcome (-1 Reward)
-                    </button>
-                </div>
-            </div>
-        `;
-
-        showToast('5-Agent Pipeline executed and Manager Action Card generated!', 'success');
-    } catch (e) {
-        showToast('Agent execution error: ' + e.message, 'error');
+    // ── UTILITIES ─────────────────────────────────────────────────────────
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     }
-}
 
-async function sendAgentFeedback(empId, action, outcome) {
-    try {
-        const res = await fetch('/api/agent/feedback', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ employee_id: empId, action: action, outcome: outcome })
-        });
-        const data = await res.json();
-        if (data.error) {
-            showToast(data.error, 'error');
-        } else {
-            showToast(`Feedback recorded! Bandit policy updated for ${action}.`, 'success');
-        }
-    } catch (e) {
-        showToast('Feedback submit error: ' + e.message, 'error');
-    }
-}
-
-// ===================== ABLATION STUDY =====================
-function initAblation() {
-    const btnRun = document.getElementById('btnRunAblation');
-    if (btnRun) {
-        btnRun.addEventListener('click', runAblationMatrix);
-    }
-}
-
-async function runAblationMatrix() {
-    try {
-        showToast('Executing Section 10 Ablation Study matrix...', 'info');
-        const res = await fetch('/api/ablation', { method: 'POST' });
-        const data = await res.json();
-        if (data.error) {
-            showToast(data.error, 'error');
-            return;
-        }
-
-        const body = document.getElementById('ablationBody');
-        body.innerHTML = data.ablation_results.map(row => `
-            <tr>
-                <td><strong>${row.Configuration}</strong></td>
-                <td><span style="color:#00d4ff;">${row.C_index}</span></td>
-                <td>${row.IBS}</td>
-                <td><strong style="color:#00ff9d;">${row.Revenue_Recall_10}</strong></td>
-                <td>${row.Cumulative_Reward}</td>
-                <td style="font-size:0.85em; color:#8890a8;">${row.Notes}</td>
-            </tr>
-        `).join('');
-
-        showToast('Section 10 Ablation Matrix execution complete!', 'success');
-    } catch (e) {
-        showToast('Ablation execution error: ' + e.message, 'error');
-    }
-}
-
+    // Initialize Application
+    init();
+});

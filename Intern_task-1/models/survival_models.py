@@ -5,8 +5,10 @@ Implements Kaplan-Meier, Cox Proportional Hazards, and Random Survival Forest.
 
 import numpy as np
 import pandas as pd
+import sys
 import matplotlib
-matplotlib.use('Agg')
+if 'ipykernel' not in sys.modules:
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import io
@@ -93,7 +95,7 @@ def kaplan_meier_plot(T, E, groups=None, group_col_name='Group'):
 
 # ===================== COX PH =====================
 
-def fit_cox_ph(X, T, E):
+def fit_cox_ph(X, T, E, penalizer=0.001):
     """
     Fit Cox Proportional Hazards model.
     X should already be standardized (zero mean, unit variance).
@@ -114,7 +116,7 @@ def fit_cox_ph(X, T, E):
 
     # With standardized features, a small penalizer is fine
     # Extremely low penalizer since we use StandardScaler, allowing maximum coefficient learning
-    cph = CoxPHFitter(penalizer=0.001)
+    cph = CoxPHFitter(penalizer=penalizer)
     cph.fit(df_cox, duration_col='duration', event_col='event')
     return cph
 
@@ -299,3 +301,60 @@ def assign_risk_category(median_months, thresholds=None):
         return 'Medium'
     else:
         return 'Low'
+
+
+def plot_roc_comparison(roc_curves_data):
+    """
+    Generate ROC curves comparison figure matching model_evaluation.ipynb.
+    roc_curves_data: list of tuples (model_name, y_true, y_prob, color, linewidth)
+    """
+    _dark_style()
+    fig, ax = plt.subplots(figsize=(8, 5))
+    
+    from sklearn.metrics import roc_curve, roc_auc_score
+    for name, y_true, y_prob, color, lw in roc_curves_data:
+        fpr, tpr, _ = roc_curve(y_true, y_prob)
+        auc = roc_auc_score(y_true, y_prob)
+        ax.plot(fpr, tpr, label=f"{name} (AUC = {auc:.4f})", color=color, linewidth=lw)
+
+    ax.plot([0, 1], [0, 1], 'k--', color='#64748b', alpha=0.6, linewidth=1.5,
+            label='Random Baseline (AUC = 0.5000)')
+
+    ax.set_title('ROC Curves Comparison: Test Split Discrimination',
+                 fontsize=12, fontweight='bold', color='#ffffff', pad=12)
+    ax.set_xlabel('False Positive Rate (1 - Specificity)', fontsize=9.5, color='#94a3b8')
+    ax.set_ylabel('True Positive Rate (Recall)', fontsize=9.5, color='#94a3b8')
+    ax.legend(fontsize=8.5, facecolor='#161b33', edgecolor='#2a3055', labelcolor='#ffffff', loc='lower right')
+    ax.grid(True, alpha=0.2, color='#2a3055')
+    ax.set_xlim(-0.02, 1.02)
+    ax.set_ylim(-0.02, 1.05)
+
+    return _fig_to_base64(fig)
+
+
+def plot_confusion_matrices_grid(cm_models_data):
+    """
+    Generate side-by-side Confusion Matrix heatmaps matching model_evaluation.ipynb.
+    cm_models_data: list of tuples (model_name, cm, accuracy, recall, f1, cmap_name)
+    """
+    _dark_style()
+    n_models = len(cm_models_data)
+    fig, axes = plt.subplots(1, n_models, figsize=(3.8 * n_models, 3.4))
+    if n_models == 1:
+        axes = [axes]
+
+    for ax, (title, cm, acc, rec, f1, cmap) in zip(axes, cm_models_data):
+        sns.heatmap(
+            cm, annot=True, fmt='d', cmap=cmap, cbar=False, ax=ax,
+            annot_kws={"size": 11, "weight": "bold", "color": "#ffffff"},
+            xticklabels=['Stayed (0)', 'Left (1)'],
+            yticklabels=['Stayed (0)', 'Left (1)']
+        )
+        ax.set_title(f"{title}\nAcc: {acc*100:.1f}% | Rec: {rec*100:.1f}% | F1: {f1:.3f}",
+                     fontsize=9, fontweight='600', color='#ffffff', pad=8)
+        ax.set_xlabel('Predicted Class', fontsize=8, color='#94a3b8')
+        ax.set_ylabel('Actual Class', fontsize=8, color='#94a3b8')
+        ax.tick_params(colors='#94a3b8', labelsize=8)
+
+    plt.tight_layout()
+    return _fig_to_base64(fig)
