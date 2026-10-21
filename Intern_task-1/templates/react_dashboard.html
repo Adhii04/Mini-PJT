@@ -713,13 +713,39 @@
                                 <span class="badge badge-cyan">Novelty 4 Policy</span>
                             </div>
 
-                            <div class="formula-banner">
-                                <span class="formula-label">LinUCB Action Selection Policy:</span>
-                                <span class="formula-math katex-eq" data-tex="a^* = \underset{a \in \mathcal{A}}{\operatorname{argmax}} \left[ \boldsymbol{\theta}_a^T \mathbf{x}_i + \alpha \sqrt{\mathbf{x}_i^T \mathbf{A}_a^{-1} \mathbf{x}_i} \right]">
-                                    <span class="math-rendered">
-                                        <i class="math-var">a</i><sup>*</sup> = <span class="math-op">arg&thinsp;max</span><sub><i>a</i>&isin;<i>A</i></sub> &lsqb;&thinsp;<b>&theta;</b><sub><i>a</i></sub><sup>T</sup><b>x</b><sub><i>i</i></sub> + &alpha; <span class="math-sqrt-wrap"><span class="math-sqrt-sym">&radic;</span><span class="math-sqrt-body">&thinsp;<b>x</b><sub><i>i</i></sub><sup>T</sup><b>A</b><sub><i>a</i></sub><sup>&minus;1</sup><b>x</b><sub><i>i</i></sub>&thinsp;</span></span>&thinsp;&rsqb;
+                            <!-- Novelty 4 Policy Mathematical Formulation Card -->
+                            <div class="policy-formula-card">
+                                <div class="policy-formula-header">
+                                    <span class="policy-formula-tag">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                                        POLICY FORMULATION
                                     </span>
-                                </span>
+                                    <span class="policy-formula-title">LinUCB Action Selection Rule (Upper Confidence Bound)</span>
+                                </div>
+
+                                <div class="policy-formula-body">
+                                    <div class="math-equation-hero katex-eq" data-tex="a^* = \underset{a \in \mathcal{A}}{\operatorname{argmax}} \;\Big[\; \underbrace{\boldsymbol{\theta}_a^T \mathbf{x}_i}_{\text{Exploitation}} \;+\; \underbrace{\alpha \sqrt{\mathbf{x}_i^T \mathbf{A}_a^{-1} \mathbf{x}_i}}_{\text{Exploration Bonus}} \;\Big]">
+                                        <div class="math-hero-row">
+                                            <span class="math-hero-target"><i>a</i><sup>*</sup></span>
+                                            <span class="math-hero-equal">=</span>
+                                            <span class="math-hero-op">
+                                                <span class="math-hero-op-text">arg&thinsp;max</span>
+                                                <span class="math-hero-op-sub"><i>a</i> &isin; <i>&Ascr;</i></span>
+                                            </span>
+                                            <span class="math-hero-bracket">&lsqb;</span>
+                                            <span class="math-hero-term term-exploitation" title="Exploitation: Expected reward given historical outcomes">
+                                                <span class="math-hero-sym"><b>&theta;</b><sub><i>a</i></sub><sup>T</sup> <b>x</b><sub><i>i</i></sub></span>
+                                                <span class="math-hero-badge badge-exploit">Expected Payoff</span>
+                                            </span>
+                                            <span class="math-hero-plus">&plus;</span>
+                                            <span class="math-hero-term term-exploration" title="Exploitation: Upper confidence interval width based on ridge covariance">
+                                                <span class="math-hero-sym"><span class="math-alpha-highlight">&alpha;</span> &middot; &radic;<span class="math-hero-radic">&nbsp;<b>x</b><sub><i>i</i></sub><sup>T</sup> <b>A</b><sub><i>a</i></sub><sup>&minus;1</sup> <b>x</b><sub><i>i</i></sub>&nbsp;</span></span>
+                                                <span class="math-hero-badge badge-explore">Uncertainty Bonus</span>
+                                            </span>
+                                            <span class="math-hero-bracket">&rsqb;</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="stats-metrics-strip">
