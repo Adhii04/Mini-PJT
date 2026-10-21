@@ -309,14 +309,6 @@
                             </svg>
                             <span>Baseline Logistic Regression</span>
                         </button>
-                        <button class="subtab-btn" data-subtab="sub-bandit">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <circle cx="12" cy="12" r="6"></circle>
-                                <circle cx="12" cy="12" r="2"></circle>
-                            </svg>
-                            <span>LinUCB Contextual Bandit (N4)</span>
-                        </button>
                         <button class="subtab-btn" data-subtab="sub-km">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
@@ -702,87 +694,7 @@
                         </div>
                     </div>
 
-                    <!-- Subtab 5: LinUCB Contextual Bandit -->
-                    <div class="subtab-panel" id="sub-bandit">
-                        <div class="panel-card">
-                            <div class="panel-card-header">
-                                <div>
-                                    <h4 class="panel-card-title">Novelty 4 Policy: LinUCB Contextual Multi-Armed Bandit</h4>
-                                    <p class="panel-card-subtitle">Online reinforcement learning algorithm that prescribes tailored retention interventions using a 10-D employee context vector.</p>
-                                </div>
-                                <span class="badge badge-cyan">Novelty 4 Policy</span>
-                            </div>
-
-                            <!-- Novelty 4 Policy Mathematical Formulation Card -->
-                            <div class="policy-formula-card">
-                                <div class="policy-formula-header">
-                                    <span class="policy-formula-tag">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-                                        POLICY FORMULATION
-                                    </span>
-                                    <span class="policy-formula-title">LinUCB Action Selection Rule (Upper Confidence Bound)</span>
-                                </div>
-
-                                <div class="policy-formula-body">
-                                    <div class="math-equation-hero katex-eq" data-tex="a^* = \underset{a \in \mathcal{A}}{\operatorname{argmax}} \;\Big[\; \underbrace{\boldsymbol{\theta}_a^T \mathbf{x}_i}_{\text{Exploitation}} \;+\; \underbrace{\alpha \sqrt{\mathbf{x}_i^T \mathbf{A}_a^{-1} \mathbf{x}_i}}_{\text{Exploration Bonus}} \;\Big]">
-                                        <div class="math-hero-row">
-                                            <span class="math-hero-target"><i>a</i><sup>*</sup></span>
-                                            <span class="math-hero-equal">=</span>
-                                            <span class="math-hero-op">
-                                                <span class="math-hero-op-text">arg&thinsp;max</span>
-                                                <span class="math-hero-op-sub"><i>a</i> &isin; <i>&Ascr;</i></span>
-                                            </span>
-                                            <span class="math-hero-bracket">&lsqb;</span>
-                                            <span class="math-hero-term term-exploitation" title="Exploitation: Expected reward given historical outcomes">
-                                                <span class="math-hero-sym"><b>&theta;</b><sub><i>a</i></sub><sup>T</sup> <b>x</b><sub><i>i</i></sub></span>
-                                                <span class="math-hero-badge badge-exploit">Expected Payoff</span>
-                                            </span>
-                                            <span class="math-hero-plus">&plus;</span>
-                                            <span class="math-hero-term term-exploration" title="Exploitation: Upper confidence interval width based on ridge covariance">
-                                                <span class="math-hero-sym"><span class="math-alpha-highlight">&alpha;</span> &middot; &radic;<span class="math-hero-radic">&nbsp;<b>x</b><sub><i>i</i></sub><sup>T</sup> <b>A</b><sub><i>a</i></sub><sup>&minus;1</sup> <b>x</b><sub><i>i</i></sub>&nbsp;</span></span>
-                                                <span class="math-hero-badge badge-explore">Uncertainty Bonus</span>
-                                            </span>
-                                            <span class="math-hero-bracket">&rsqb;</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="stats-metrics-strip">
-                                <div class="stat-metric-box">
-                                    <div class="stat-box-title">Candidate Action Arms</div>
-                                    <div class="stat-box-value">5 Discrete Arms</div>
-                                </div>
-                                <div class="stat-metric-box">
-                                    <div class="stat-box-title">Exploration Parameter (&alpha;)</div>
-                                    <div class="stat-box-value">1.0</div>
-                                </div>
-                                <div class="stat-metric-box">
-                                    <div class="stat-box-title">Context Vector Dimension</div>
-                                    <div class="stat-box-value">10-D Normalized</div>
-                                </div>
-                                <div class="stat-metric-box">
-                                    <div class="stat-box-title">Closed-Loop Learning</div>
-                                    <div class="stat-box-value text-emerald">Active via Feedback</div>
-                                </div>
-                            </div>
-
-                            <div class="grid-2-col">
-                                <div class="param-list">
-                                    <div class="param-row"><span class="param-key">1. Salary Review:</span><span class="param-val">Compensation adjustment & merit raise analysis</span></div>
-                                    <div class="param-row"><span class="param-key">2. L&D Offer:</span><span class="param-val">Leadership training, certifications & skill development</span></div>
-                                    <div class="param-row"><span class="param-key">3. Managerial 1:1:</span><span class="param-val">Skip-level meeting, career roadmapping & coaching</span></div>
-                                </div>
-                                <div class="param-list">
-                                    <div class="param-row"><span class="param-key">4. Flexible Work:</span><span class="param-val">Hybrid schedule, remote options & work-life balance</span></div>
-                                    <div class="param-row"><span class="param-key">5. Retention Bonus:</span><span class="param-val">Targeted stay bonus with retention clawback</span></div>
-                                    <div class="param-row"><span class="param-key">Policy Convergence:</span><span class="param-val text-cyan">Sub-linear Regret Guarantee</span></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Subtab 6: Kaplan-Meier Estimator -->
+                    <!-- Subtab 5: Kaplan-Meier Estimator -->
                     <div class="subtab-panel" id="sub-km">
                         <div class="panel-card">
                             <div class="panel-card-header">

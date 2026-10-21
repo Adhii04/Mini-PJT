@@ -37,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'sub-rsf': 'Random Survival Forest',
         'sub-ensemble': 'Weighted Ensemble',
         'sub-baseline': 'Baseline Logistic',
-        'sub-bandit': 'LinUCB Contextual Bandit',
         'sub-km': 'Kaplan-Meier Estimator'
     };
 
