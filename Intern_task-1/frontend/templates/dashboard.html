@@ -8,6 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- KaTeX for authentic mathematical typography -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -613,7 +617,13 @@
 
                             <div class="formula-banner">
                                 <span class="formula-label">Ensemble Calibration Formulation:</span>
-                                <span class="formula-math">S_ensemble(t) = w_Cox · S_Cox(t) + w_RSF · S_RSF(t) &nbsp;&nbsp;|&nbsp;&nbsp; w_a = (C_a - 0.5) / Σ(C_k - 0.5)</span>
+                                <span class="formula-math katex-eq" data-tex="S_{\text{ens}}(t) = w_{\text{Cox}} S_{\text{Cox}}(t) + w_{\text{RSF}} S_{\text{RSF}}(t) \quad \Big| \quad w_a = \frac{C_a - 0.5}{\sum_{k} (C_k - 0.5)}">
+                                    <span class="math-rendered">
+                                        <i>S</i><sub>ens</sub>(<i>t</i>) = <i>w</i><sub>Cox</sub>&middot;<i>S</i><sub>Cox</sub>(<i>t</i>) + <i>w</i><sub>RSF</sub>&middot;<i>S</i><sub>RSF</sub>(<i>t</i>)
+                                        <span class="formula-sep">&vert;</span>
+                                        <i>w</i><sub><i>a</i></sub> = (<i>C</i><sub><i>a</i></sub> &minus; 0.5) &sol; &sum;<sub><i>k</i></sub> (<i>C</i><sub><i>k</i></sub> &minus; 0.5)
+                                    </span>
+                                </span>
                             </div>
 
                             <div class="stats-metrics-strip">
@@ -705,7 +715,11 @@
 
                             <div class="formula-banner">
                                 <span class="formula-label">LinUCB Action Selection Policy:</span>
-                                <span class="formula-math">a* = argmax_a [ &theta;_a^T · x_i + &alpha; · &radic;(x_i^T · A_a^{-1} · x_i) ]</span>
+                                <span class="formula-math katex-eq" data-tex="a^* = \underset{a \in \mathcal{A}}{\operatorname{argmax}} \left[ \boldsymbol{\theta}_a^T \mathbf{x}_i + \alpha \sqrt{\mathbf{x}_i^T \mathbf{A}_a^{-1} \mathbf{x}_i} \right]">
+                                    <span class="math-rendered">
+                                        <i class="math-var">a</i><sup>*</sup> = <span class="math-op">arg&thinsp;max</span><sub><i>a</i>&isin;<i>A</i></sub> &lsqb;&thinsp;<b>&theta;</b><sub><i>a</i></sub><sup>T</sup><b>x</b><sub><i>i</i></sub> + &alpha; <span class="math-sqrt-wrap"><span class="math-sqrt-sym">&radic;</span><span class="math-sqrt-body">&thinsp;<b>x</b><sub><i>i</i></sub><sup>T</sup><b>A</b><sub><i>a</i></sub><sup>&minus;1</sup><b>x</b><sub><i>i</i></sub>&thinsp;</span></span>&thinsp;&rsqb;
+                                    </span>
+                                </span>
                             </div>
 
                             <div class="stats-metrics-strip">
@@ -790,8 +804,14 @@
 
                     <!-- Formula Banner -->
                     <div class="formula-banner">
-                        <span class="formula-label">Revenue at Risk & Urgency Formulation:</span>
-                        <span class="formula-math">RAR = ELV &times; P(churn_90d) &times; Confidence_Weight &nbsp;&nbsp;|&nbsp;&nbsp; Urgency = 0.6&middot;P(churn) + 0.4&middot;RAR_norm</span>
+                        <span class="formula-label">Revenue at Risk &amp; Urgency Formulation:</span>
+                        <span class="formula-math katex-eq" data-tex="\text{RAR}_i = \text{ELV}_i \times P(\text{churn}_i) \times w_{\text{conf}} \quad \Big| \quad \text{Urgency}_i = 0.6 \cdot P(\text{churn}_i) + 0.4 \cdot \text{RAR}_{\text{norm}, i}">
+                            <span class="math-rendered">
+                                RAR<sub><i>i</i></sub> = ELV<sub><i>i</i></sub> &times; <i>P</i>(churn<sub><i>i</i></sub>) &times; <i>w</i><sub>conf</sub>
+                                <span class="formula-sep">&vert;</span>
+                                Urgency<sub><i>i</i></sub> = 0.6&middot;<i>P</i>(churn<sub><i>i</i></sub>) + 0.4&middot;RAR<sub>norm, <i>i</i></sub>
+                            </span>
+                        </span>
                     </div>
 
                     <!-- Triage KPIs -->

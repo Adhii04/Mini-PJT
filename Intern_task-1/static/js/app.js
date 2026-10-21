@@ -212,6 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function init() {
         setupEventListeners();
         updateBreadcrumbs();
+        renderMathFormulas();
         try {
             await Promise.all([
                 fetchOverview(),
@@ -221,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.warn('Initial data load warning:', e);
         }
+        setTimeout(renderMathFormulas, 300);
     }
 
     // ── EVENT LISTENERS SETUP ─────────────────────────────────────────────
@@ -357,7 +359,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else if (tabId === 'employee-explorer') {
             fetchEmployees();
+        } else if (tabId === 'explainability') {
+            if (elements.globalShapContainer && (!elements.globalShapContainer.querySelector('img') || elements.globalShapContainer.querySelector('.chart-empty-placeholder'))) {
+                if (appState.overviewData && appState.overviewData.shap_global_plot) {
+                    elements.globalShapContainer.innerHTML = `<img src="data:image/png;base64,${appState.overviewData.shap_global_plot}" alt="Global TreeSHAP Attributions" style="width:100%;height:auto;border-radius:8px;">`;
+                } else {
+                    fetchGlobalShapPlot();
+                }
+            }
         }
+        renderMathFormulas();
     }
 
     function switchSubTab(subTabId) {
@@ -766,7 +777,52 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.kmDeptContainer.innerHTML = `<img src="data:image/png;base64,${data.km_department_plot}" alt="Kaplan-Meier Department Curves">`;
         }
         if (data.shap_global_plot && elements.globalShapContainer) {
-            elements.globalShapContainer.innerHTML = `<img src="data:image/png;base64,${data.shap_global_plot}" alt="Global TreeSHAP Attributions">`;
+            elements.globalShapContainer.innerHTML = `<img src="data:image/png;base64,${data.shap_global_plot}" alt="Global TreeSHAP Attributions" style="width:100%;height:auto;border-radius:8px;">`;
+        }
+        renderMathFormulas();
+    }
+
+    async function fetchGlobalShapPlot() {
+        if (!elements.globalShapContainer) return;
+        try {
+            const res = await fetch('/api/explainability/global');
+            if (res.ok) {
+                const d = await res.json();
+                if (d.shap_global_plot) {
+                    if (appState.overviewData) appState.overviewData.shap_global_plot = d.shap_global_plot;
+                    elements.globalShapContainer.innerHTML = `<img src="data:image/png;base64,${d.shap_global_plot}" alt="Global TreeSHAP Attributions" style="width:100%;height:auto;border-radius:8px;">`;
+                }
+            }
+        } catch (err) {
+            console.error('Failed to load global SHAP plot:', err);
+        }
+    }
+
+    function renderMathFormulas() {
+        if (window.renderMathInElement) {
+            try {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false }
+                    ],
+                    throwOnError: false
+                });
+            } catch (e) {
+                // KaTeX render warning
+            }
+        }
+        if (window.katex) {
+            document.querySelectorAll('.katex-eq').forEach(el => {
+                const tex = el.getAttribute('data-tex');
+                if (tex) {
+                    try {
+                        katex.render(tex, el, { displayMode: false, throwOnError: false });
+                    } catch (e) {
+                        // ignore and keep fallback HTML
+                    }
+                }
+            });
         }
     }
 

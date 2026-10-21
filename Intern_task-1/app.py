@@ -176,6 +176,25 @@ def load_dataset_state(dataset_key='ibm'):
                 state['roc_curve_plot'] = metrics_json.get('roc_curve_plot')
                 state['confusion_matrices_plot'] = metrics_json.get('confusion_matrices_plot')
 
+                # Load precomputed SHAP artifacts if available
+                state['shap_global_plot'] = metrics_json.get('shap_global_plot')
+                plot_b64_file = os.path.join(saved_dir, 'shap_global_plot.b64')
+                if not state['shap_global_plot'] and os.path.exists(plot_b64_file):
+                    try:
+                        with open(plot_b64_file, 'r', encoding='utf-8') as f:
+                            state['shap_global_plot'] = f.read().strip()
+                    except Exception as e_plot:
+                        logger.warning(f"Could not read shap_global_plot.b64: {e_plot}")
+
+                val_file = os.path.join(saved_dir, 'shap_values.npy')
+                x_file = os.path.join(saved_dir, 'shap_X.parquet')
+                if os.path.exists(val_file) and os.path.exists(x_file):
+                    try:
+                        state['shap_values'] = np.load(val_file)
+                        state['shap_X'] = pd.read_parquet(x_file)
+                    except Exception as e_vals:
+                        logger.warning(f"Could not load precomputed SHAP values/X: {e_vals}")
+
                 # Load cached predictions or compute
                 pred_path = os.path.join(saved_dir, 'predictions.parquet')
                 if os.path.exists(pred_path):
@@ -394,8 +413,60 @@ def _ensure_classification_plots_and_metrics():
         logger.warning(f"Error ensuring classification plots: {e}")
 
 
+def _ensure_shap_global_plot():
+    """Ensure Global TreeSHAP Summary Plot and values are loaded or pre-computed."""
+    try:
+        if state.get('shap_global_plot'):
+            return state['shap_global_plot']
+
+        dataset_key = state.get('dataset_key', 'ibm')
+        saved_dir = os.path.join(app.root_path, 'outputs', 'saved_models', dataset_key)
+        plot_b64_file = os.path.join(saved_dir, 'shap_global_plot.b64')
+        if os.path.exists(plot_b64_file):
+            try:
+                with open(plot_b64_file, 'r', encoding='utf-8') as f:
+                    p = f.read().strip()
+                    if p:
+                        state['shap_global_plot'] = p
+                        return p
+            except Exception as e_f:
+                logger.warning(f"Error reading {plot_b64_file}: {e_f}")
+
+        # Check if shap_values and shap_X are loaded
+        if state.get('shap_values') is not None and state.get('shap_X') is not None:
+            p = global_shap_plot(state['shap_values'], state['shap_X'])
+            if p:
+                state['shap_global_plot'] = p
+                return p
+
+        # On-demand computation fallback
+        rsf = state.get('rsf')
+        X = state.get('X')
+        if rsf is not None and X is not None:
+            logger.info("Computing SHAP values on-demand...")
+            shap_values, shap_X, explainer = compute_shap_values(rsf, X)
+            state['shap_values'] = shap_values
+            state['shap_X'] = shap_X
+            state['shap_explainer'] = explainer
+            p = global_shap_plot(shap_values, shap_X)
+            state['shap_global_plot'] = p
+            try:
+                os.makedirs(saved_dir, exist_ok=True)
+                with open(plot_b64_file, 'w', encoding='utf-8') as f:
+                    f.write(p)
+                np.save(os.path.join(saved_dir, 'shap_values.npy'), shap_values)
+                shap_X.to_parquet(os.path.join(saved_dir, 'shap_X.parquet'))
+            except Exception as e_save:
+                logger.warning(f"Could not persist on-demand SHAP cache: {e_save}")
+            return p
+    except Exception as e:
+        logger.error(f"Error in _ensure_shap_global_plot: {e}")
+    return None
+
+
 _auto_init()
 _ensure_classification_plots_and_metrics()
+_ensure_shap_global_plot()
 
 
 
@@ -601,10 +672,13 @@ def get_overview():
         else:
             km_department = None
 
-        # Global SHAP (safe check)
-        shap_plot = None
-        if state.get('shap_values') is not None and state.get('shap_X') is not None:
+        # Global SHAP (ensure immediately available)
+        shap_plot = state.get('shap_global_plot')
+        if not shap_plot and state.get('shap_values') is not None and state.get('shap_X') is not None:
             shap_plot = global_shap_plot(state['shap_values'], state['shap_X'])
+            state['shap_global_plot'] = shap_plot
+        if not shap_plot:
+            shap_plot = _ensure_shap_global_plot()
 
         # Real Model Metrics
         train_result = state.get('train_result') or {}
@@ -939,6 +1013,21 @@ def get_employee_detail(emp_id):
     except Exception as e:
         traceback.print_exc()
         return jsonify({'error': f'Failed to get employee detail: {str(e)}'}), 500
+
+
+@app.route('/api/explainability/global', methods=['GET'])
+def get_global_shap():
+    """Return the global TreeSHAP feature attributions plot directly."""
+    try:
+        if not state.get('trained'):
+            return jsonify({'error': 'Models not trained yet.'}), 400
+        plot_b64 = state.get('shap_global_plot') or _ensure_shap_global_plot()
+        if not plot_b64:
+            return jsonify({'error': 'Global TreeSHAP plot could not be loaded.'}), 500
+        return jsonify({'shap_global_plot': plot_b64})
+    except Exception as e:
+        logger.error(f"Failed to return global SHAP plot: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 # ===================== NEW NEXUS API ENDPOINTS =====================
